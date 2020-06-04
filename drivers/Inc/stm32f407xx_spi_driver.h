@@ -80,6 +80,14 @@ typedef struct {
 #define SPI_SSM_DS							0	/* Software slave management disabled */
 #define SPI_SSM_EN							1	/* Software slave management enabled */
 
+/*
+ * SPI related status flag definitions
+ * @SPI_FLAGS
+ */
+#define SPI_TXE_FLAG						(1 << SPI_SR_TXE)
+#define SPI_RXNE_FLAG						(1 << SPI_SR_RXNE)
+#define SPI_BUSY_FLAG						(1 << SPI_SR_BSY)
+
 
 /******************************************************************************************************
  * 											APIs supported by this driver
@@ -109,6 +117,14 @@ void SPI_ReceiveData(SPI_RegDef_t *pSPIx, uint8_t *pRxBuffer, uint32_t len);
 void SPI_IRQConfig(uint8_t irqNumber, uint8_t enOrDis);
 void SPI_IRQPriorityConfig(uint8_t irqNumber, uint32_t irqPriority);
 void SPI_IRQHandling(SPI_Handle_t *pHandle);
+
+
+/**
+ * Other Control APIs
+ */
+void SPI_PeripheralControl(SPI_RegDef_t *pSPIx, uint8_t enOrDis);
+void SPI_SSIConfig(SPI_RegDef_t *pSPIx, uint8_t enOrDis);
+
 
 
 #endif /* INC_STM32F407XX_SPI_DRIVER_H_ */
