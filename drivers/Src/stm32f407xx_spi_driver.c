@@ -171,6 +171,9 @@ void SPI_SendData(SPI_RegDef_t *pSPIx, uint8_t *pTxBuffer, uint32_t len) {
 			pTxBuffer++;
 		}
 	}
+
+	//Wait until SPI is not busy before returning
+	while(SPI_GetFlagStatus(pSPIx, SPI_BUSY_FLAG));
 }
 
 /**
@@ -207,6 +210,25 @@ void SPI_SSIConfig(SPI_RegDef_t *pSPIx, uint8_t enOrDis) {
 		pSPIx->CR1 |= (1 << SPI_CR1_SSI);
 	} else {
 		pSPIx->CR1 &= ~(1 << SPI_CR1_SSI);
+	}
+
+}
+
+/**
+ * @fn			- SPI_SSOEConfig
+ * @brief		- This function sets the CR2 SSOE bit to enable slave select output enable
+ *
+ * @param[in]	- Base address of the SPI peripheral
+ * @param[in]	- ENABLE or DISABLE macro
+ *
+ * @return		- none
+ * @note		- none
+ */
+void SPI_SSOEConfig(SPI_RegDef_t *pSPIx, uint8_t enOrDis) {
+	if(enOrDis == ENABLE) {
+		pSPIx->CR2 |= (1 << SPI_CR2_SSOE);
+	} else {
+		pSPIx->CR2 &= ~(1 << SPI_CR2_SSOE);
 	}
 
 }
