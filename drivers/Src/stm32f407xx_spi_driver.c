@@ -139,7 +139,6 @@ uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx, uint32_t flagName) {
 	}
 }
 
-
 /**
  * @fn			- SPI_SendData
  * @brief		- This function sends data on SPI peripheral using blocking method (polling).
@@ -161,9 +160,7 @@ void SPI_SendData(SPI_RegDef_t *pSPIx, uint8_t *pTxBuffer, uint32_t len) {
 			//If DFF is enabled and len > 1, load 2 bytes of data to DR
 			pSPIx->DR = *((uint16_t*) pTxBuffer);
 			len -= 2;
-//			((uint16_t*) pTxBuffer)++; //Incorrect
-//			pTxBuffer = (uint16_t*)pTxBuffer + 1; //Correct, with warning
-			pTxBuffer += 2; //Correct
+			pTxBuffer += 2;
 		} else {
 			//else, load 1 byte of data to DR
 			pSPIx->DR = *pTxBuffer;
@@ -171,9 +168,37 @@ void SPI_SendData(SPI_RegDef_t *pSPIx, uint8_t *pTxBuffer, uint32_t len) {
 			pTxBuffer++;
 		}
 	}
+}
 
-	//Wait until SPI is not busy before returning
-	while(SPI_GetFlagStatus(pSPIx, SPI_BUSY_FLAG));
+/**
+ * @fn			- SPI_ReceiveData
+ * @brief		- This function receives data on SPI peripheral using blocking method (polling).
+ * 				  Will wait for all bytes to be received
+ *
+ * @param[in]	- Base address of the SPI peripheral
+ * @param[in]	- Address of buffer to receive data
+ * @param[in]	- Number of bytes to receive
+ *
+ * @return		- none
+ * @note		- none
+ */
+void SPI_ReceiveData(SPI_RegDef_t *pSPIx, uint8_t *pRxBuffer, uint32_t len) {
+	while(len > 0) {
+		//Wait until RX Buffer is not empty
+		while(SPI_GetFlagStatus(pSPIx, SPI_RXNE_FLAG) == FLAG_RESET);
+
+		if((pSPIx->CR1 & (1 << SPI_CR1_DFF)) && len > 1) {
+			//If DFF is enabled and len > 1, load 2 bytes of data to RxBuffer from DR
+			*((uint16_t*) pRxBuffer) = pSPIx->DR;
+			len -= 2;
+			pRxBuffer += 2;
+		} else {
+			//else, load 1 byte of data  to RxBuffer from DR
+			*(pRxBuffer) = pSPIx->DR;
+			len--;
+			pRxBuffer++;
+		}
+	}
 }
 
 /**

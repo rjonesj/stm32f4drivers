@@ -18,16 +18,22 @@
  * Unzip resources/stm32f3SPISlaveRx.zip to a directory and compile and upload to a STM32F3Discovery board to be used as a slave device.
  *
  * STM32F4DISCOVERY SPI2 pins
- * PB14 --> MISO
  * PB15 --> MOSI
  * PB13 --> SCLK
+ * PB14 --> MISO
  * PB12 --> NSS
  *
  * STM32F3DISCOVERY SPI1 pins
- * PA4 --> NSS
+ * PA7 --> MOSI
  * PA5 --> SCLK
  * PA6 --> MISO
- * PA7 --> MOSI
+ * PA4 --> NSS
+ *
+ * Arduino UNO SPI pins
+ * 11 --> MOSI
+ * 13 --> SCLK
+ * 12 --> MISO
+ * 10 --> NSS
  *
  * ALT function mode: 5
  */
@@ -36,7 +42,7 @@
 # include <string.h>
 
 void delay(void) {
-	for(int i = 0; i < 500000/2; i++);
+	for(int i = 0; i < 500000; i++);
 }
 
 void SPI2_GPIOInit(void) {
@@ -73,9 +79,9 @@ void SPI2_Init(void) {
 	SPI2Handle.pSPIx = SPI2;
 	SPI2Handle.SPI_Config.SPI_BusConfig = SPI_BUS_CONFIG_FD;
 	SPI2Handle.SPI_Config.SPI_DeviceMode = SPI_DEVICE_MODE_MASTER;
-	SPI2Handle.SPI_Config.SPI_SclkSpeed = SPI_SCLK_SPEED_DIV8; //Generates SCLK of 8 Mhz
+	SPI2Handle.SPI_Config.SPI_SclkSpeed = SPI_SCLK_SPEED_DIV8; //Generates SCLK of 2 Mhz
 	SPI2Handle.SPI_Config.SPI_DFF = SPI_DFF_8BITS;
-	SPI2Handle.SPI_Config.SPI_CPOL = SPI_CPOL_HIGH;
+	SPI2Handle.SPI_Config.SPI_CPOL = SPI_CPOL_LOW;
 	SPI2Handle.SPI_Config.SPI_CPHA = SPI_CPHA_FIRST;
 	SPI2Handle.SPI_Config.SPI_SSM = SPI_SSM_DS;
 
@@ -107,25 +113,34 @@ int main(void) {
 	SPI2_Init();
 
 	/*
-	 * Enable SSOE (slave select output enable)
-	 * The NSS pin will be automatically managed by the hardware.
-	 * When SPE=1, NSS will be pulled to low
-	 * When SPE=0, NSS will be pulled to high
-	 */
-	 SPI_SSOEConfig(SPI2, ENABLE);
+	* Enable SSOE (slave select output enable)
+	* The NSS pin will be automatically managed by the hardware.
+	* When SPE=1, NSS will be pulled to low
+	* When SPE=0, NSS will be pulled to high
+	*/
+	SPI_SSOEConfig(SPI2, ENABLE);
 
 	while(1) {
-		while(!GPIO_ReadFromInputPin(GPIOA, GPIO_PIN_NO_0));
-		delay(); //debounce button
+		if(GPIO_ReadFromInputPin(GPIOA, GPIO_PIN_NO_0)) {
+			delay(); //debounce button
+			while(GPIO_ReadFromInputPin(GPIOA, GPIO_PIN_NO_0)); //wait until button has been released
 
-		//Enable the SPI2 peripheral
-		SPI_PeripheralControl(SPI2, ENABLE);
+			//Enable the SPI2 peripheral
+			SPI_PeripheralControl(SPI2, ENABLE);
 
-		//Send the data over MOSI line
-		SPI_SendData(SPI2, (uint8_t*)user_data, strlen(user_data));
+			//First send length information
+			uint8_t datalen = strlen(user_data);
+			SPI_SendData(SPI2, &datalen, 1);
 
-		//Disable the SPI2 peripheral
-		SPI_PeripheralControl(SPI2, DISABLE);
+			//Then, send the data over MOSI line
+			SPI_SendData(SPI2, (uint8_t*)user_data, datalen);
+
+			//Wait until SPI is not busy before returning
+			while(SPI_GetFlagStatus(SPI2, SPI_BUSY_FLAG));
+
+			//Disable the SPI2 peripheral
+			SPI_PeripheralControl(SPI2, DISABLE);
+		}
 	}
 
 
