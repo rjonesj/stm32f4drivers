@@ -29,6 +29,12 @@ typedef struct {
 typedef struct {
 	SPI_RegDef_t *pSPIx; 			/* This holds the base address of the SPIx(1,2,3) peripheral */
 	SPI_Config_t SPI_Config;		/* This holds SPI configuration settings */
+	uint8_t		*pTxBuffer;			/* Holds the application's Tx buffer address */
+	uint8_t		*pRxBuffer;			/* Holds the application's Rx buffer address */
+	uint32_t	txLen;				/* Tx Length */
+	uint32_t	rxLen;				/* Rx Length */
+	uint8_t		txState;			/* Holds the Tx state defined in @SPI_STATE */
+	uint8_t		rxState;			/* Holds the Rx state defined in @SPI_STATE */
 } SPI_Handle_t;
 
 /*
@@ -87,6 +93,23 @@ typedef struct {
 #define SPI_TXE_FLAG						(1 << SPI_SR_TXE)
 #define SPI_RXNE_FLAG						(1 << SPI_SR_RXNE)
 #define SPI_BUSY_FLAG						(1 << SPI_SR_BSY)
+#define SPI_OVR_FLAG						(1 << SPI_SR_OVR)
+
+/**
+ * SPI application states
+ * @SPI_STATE
+ */
+#define SPI_READY							0
+#define SPI_BUSY_RX							1
+#define SPI_BUSY_TX							2
+
+/**
+ * SPI application events
+ * @SPI_EVENT
+ */
+#define SPI_EVENT_TX_COMPLETE				1
+#define SPI_EVENT_RX_COMPLETE				2
+#define SPI_EVENT_OVR_ERR					3
 
 
 /******************************************************************************************************
@@ -108,17 +131,10 @@ void SPI_DeInit(SPI_RegDef_t *pSPIx);
 /**
  * Data Send and Receive
  */
-uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx, uint32_t flagName);
 void SPI_SendData(SPI_RegDef_t *pSPIx, uint8_t *pTxBuffer, uint32_t len);
 void SPI_ReceiveData(SPI_RegDef_t *pSPIx, uint8_t *pRxBuffer, uint32_t len);
-
-/**
- * IRQ Configuration and ISR handling
- */
-void SPI_IRQConfig(uint8_t irqNumber, uint8_t enOrDis);
-void SPI_IRQPriorityConfig(uint8_t irqNumber, uint32_t irqPriority);
-void SPI_IRQHandling(SPI_Handle_t *pHandle);
-
+uint8_t SPI_SendDataIT(SPI_Handle_t *pSPIHandle, uint8_t *pTxBuffer, uint32_t len);
+uint8_t SPI_ReceiveDataIT(SPI_Handle_t *pSPIHandle, uint8_t *pRxBuffer, uint32_t len);
 
 /**
  * Other Control APIs
@@ -126,7 +142,22 @@ void SPI_IRQHandling(SPI_Handle_t *pHandle);
 void SPI_PeripheralControl(SPI_RegDef_t *pSPIx, uint8_t enOrDis);
 void SPI_SSIConfig(SPI_RegDef_t *pSPIx, uint8_t enOrDis);
 void SPI_SSOEConfig(SPI_RegDef_t *pSPIx, uint8_t enOrDis);
+uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx, uint32_t flagName);
+void SPI_ClearOVRFlag(SPI_RegDef_t *pSPIx);
+void SPI_CloseTransmission(SPI_Handle_t *pSPIHandle);
+void SPI_CloseReception(SPI_Handle_t *pSPIHandle);
+uint8_t SPI_VerifyResponse(uint8_t ackByte);
 
+/**
+ * Application callback
+ */
+void SPI_ApplicationEventCallback(SPI_Handle_t *pSPIHandle, uint8_t appEvent);
 
+/**
+ * IRQ Configuration and ISR handling
+ */
+void SPI_IRQConfig(uint8_t irqNumber, uint8_t enOrDis);
+void SPI_IRQPriorityConfig(uint8_t irqNumber, uint32_t irqPriority);
+void SPI_IRQHandling(SPI_Handle_t *pHandle);
 
 #endif /* INC_STM32F407XX_SPI_DRIVER_H_ */

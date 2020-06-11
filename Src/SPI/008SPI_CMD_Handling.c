@@ -140,14 +140,6 @@ void GPIO_ButtonInit(void) {
 	GPIO_Init(&GpioButton);
 }
 
-uint8_t SPI_VerifyResponse(uint8_t ackByte) {
-	if(ackByte == 0xF5) {
-		//ack
-		return 1;
-	}
-	return 0;
-}
-
 void ledControl(uint8_t pinNo, uint8_t pinValue) {
 	//Enable the SPI2 peripheral
 	SPI_PeripheralControl(SPI2, ENABLE);
