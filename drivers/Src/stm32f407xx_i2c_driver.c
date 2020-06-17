@@ -14,6 +14,12 @@ uint8_t APB1_PreScaler[4] = {2,4,8,16};
 /**
  * Private functions
  */
+static uint32_t RCC_GetPLLOutputClock();
+static uint32_t RCC_GetPCLK1_Value();
+static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx);
+static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress);
+static void I2C_ClearADDRFlag(I2C_RegDef_t *pI2Cx);
+static void I2C_GenerateStopCondition(I2C_RegDef_t *pI2Cx);
 
 static uint32_t RCC_GetPLLOutputClock() {
 	//TODO: Implement function
@@ -55,6 +61,26 @@ static uint32_t RCC_GetPCLK1_Value() {
 	pclk1 = (systemclk / ahbp) / apb1p;
 
 	return pclk1;
+}
+
+static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx) {
+	pI2Cx->CR1 |= (1 << I2C_CR1_START);
+}
+
+static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress) {
+	slaveAddress = (slaveAddress << 1);
+	slaveAddress &= ~(0x1);
+	pI2Cx->DR = slaveAddress;
+}
+
+static void I2C_ClearADDRFlag(I2C_RegDef_t *pI2Cx) {
+	uint32_t dummyRead = pI2Cx->SR1;
+	dummyRead = pI2Cx->SR2;
+	(void)dummyRead;
+}
+
+static void I2C_GenerateStopCondition(I2C_RegDef_t *pI2Cx) {
+	pI2Cx->CR1 |= (1 << I2C_CR1_STOP);
 }
 
 
@@ -108,6 +134,9 @@ void I2C_PeriClockControl(I2C_RegDef_t *pI2Cx, uint8_t EnOrDis) {
 void I2C_Init(I2C_Handle_t *pI2CHandle) {
 	uint32_t tempreg = 0;
 
+	//Enable the clock for the I2Cx peripheral
+	I2C_PeriClockControl(pI2CHandle->pI2Cx, ENABLE);
+
 	//Configure CR1 register (ACK bit)
 	tempreg |= (pI2CHandle->I2C_Config.I2C_ACKControl << I2C_CR1_ACK);
 	pI2CHandle->pI2Cx->CR1 = tempreg;
@@ -147,7 +176,15 @@ void I2C_Init(I2C_Handle_t *pI2CHandle) {
 	pI2CHandle->pI2Cx->CCR |= tempreg;
 
 	//Configure TRISE register
-	//TODO: Complete configuration
+	uint8_t trise;
+	if(pI2CHandle->I2C_Config.I2C_SCLSpeed <= I2C_SCL_SPEED_SM) {
+		//standard mode
+		trise = (RCC_GetPCLK1_Value() / 1000000U) + 1;
+	} else {
+		//fast mode
+		trise = (RCC_GetPCLK1_Value() / 300000U) + 1;
+	}
+	pI2CHandle->pI2Cx->TRISE = (trise & 0x3F);
 }
 
 
@@ -173,6 +210,55 @@ void I2C_DeInit(I2C_RegDef_t *pI2Cx) {
 /**
  * Data Send and Receive
  */
+
+/**
+ * @fn			- I2C_MasterSendData
+ * @brief		- This function sends data to slave device over I2C peripheral
+ *
+ * @param[in]	- Address of I2C_Handle_t struct
+ * @param[in]	- Address to data buffer to transmit
+ * @param[in]	- Length of data in bytes
+ * @param[in]	- Address of slave device to receive data
+ *
+ * @return		- none
+ * @note		- none
+ */
+void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t len, uint8_t slaveAddress) {
+	//1. Generate the START condition
+	I2C_GenerateStartCondition(pI2CHandle->pI2Cx);
+
+	//2. Confirm that start generation is completed by checking the SB flag has been set in SR1
+	//   Note: SCL will be stretched (pulled to LOW) until SB bit is cleared
+	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_SB));
+
+	//3. Send the address of the slave with r/nw bit set to w (0). (Total 8 bits)
+	I2C_ExecuteAddressPhase(pI2CHandle->pI2Cx, slaveAddress);
+
+	//4. Confirm that the address phase is completed by checking the ADDR flag in the SR1
+	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_ADDR));
+
+	//5. Clear the ADDR flag according to its software sequence
+	//   Note: SCL will be stretched until ADDR flag is cleared.
+	I2C_ClearADDRFlag(pI2CHandle->pI2Cx);
+
+	//6. Send the data until Len becomes 0
+	while(len > 0) {
+		while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_TXE)); //Wait until TXE is set
+		pI2CHandle->pI2Cx->DR = *pTxBuffer;
+		pTxBuffer++;
+		len--;
+	}
+
+	//7. When Len becomes zero, wait for TXE=1 and BTF=1 (Byte transfer finished) before generating the STOP condition
+	//   Note: TXE=1, BTF=1 means that both SR and DR are empty and next transmission should begin
+	//         When BTF=1 SCL will be stretched.
+	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_TXE));
+	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_BTF));
+
+	//8. Generate STOP condition.  Master does not need to wait for completion of the STOP condition
+	//   Note: Generating STOP automatically clears the BTF
+	I2C_GenerateStopCondition(pI2CHandle->pI2Cx);
+}
 
 
 /**
