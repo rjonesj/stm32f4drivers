@@ -66,6 +66,9 @@ typedef struct {
 #define I2C_FLAG_OVR						(1 << I2C_SR1_OVR)
 #define I2C_FLAG_TIMEOUT					(1 << I2C_SR1_TIMEOUT)
 
+#define I2C_ENABLE_SR								0
+#define I2C_DISABLE_SR								1
+
 
 /******************************************************************************************************
  * 											APIs supported by this driver
@@ -86,7 +89,8 @@ void I2C_DeInit(I2C_RegDef_t *pI2Cx);
 /**
  * Data Send and Receive
  */
-void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t len, uint8_t slaveAddress);
+void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t len, uint8_t slaveAddress, uint8_t enSR);
+void I2C_MasterReceiveData(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, uint32_t len, uint8_t slaveAddress, uint8_t enSR);
 
 /**
  * IRQ Configuration and ISR handling
@@ -97,8 +101,9 @@ void I2C_IRQPriorityConfig(uint8_t irqNumber, uint32_t irqPriority);
 /**
  * Other Control APIs
  */
-void I2C_PeripheralControl(I2C_RegDef_t *pI2Cx, uint8_t enOrDis);
+void I2C_PeripheralControl(I2C_Handle_t *pI2CHandle, uint8_t enOrDis);
 uint8_t I2C_GetFlagStatus(I2C_RegDef_t *pI2Cx, uint32_t flagName);
+void I2C_ACKControl(I2C_RegDef_t *pI2Cx, uint8_t enOrDis);
 
 /**
  * Application callback

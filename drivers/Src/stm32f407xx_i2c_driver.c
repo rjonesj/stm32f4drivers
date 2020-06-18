@@ -14,10 +14,13 @@ uint8_t APB1_PreScaler[4] = {2,4,8,16};
 /**
  * Private functions
  */
+#define READ		1
+#define WRITE		0
+
 static uint32_t RCC_GetPLLOutputClock();
 static uint32_t RCC_GetPCLK1_Value();
 static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx);
-static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress);
+static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress, uint8_t readOrWrite);
 static void I2C_ClearADDRFlag(I2C_RegDef_t *pI2Cx);
 static void I2C_GenerateStopCondition(I2C_RegDef_t *pI2Cx);
 
@@ -67,9 +70,13 @@ static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx) {
 	pI2Cx->CR1 |= (1 << I2C_CR1_START);
 }
 
-static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress) {
+static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress, uint8_t readOrWrite) {
 	slaveAddress = (slaveAddress << 1);
-	slaveAddress &= ~(0x1);
+	if(readOrWrite == WRITE) {
+		slaveAddress &= ~(0x1);
+	} else if(readOrWrite == READ) {
+		slaveAddress |= (0x1);
+	}
 	pI2Cx->DR = slaveAddress;
 }
 
@@ -136,10 +143,6 @@ void I2C_Init(I2C_Handle_t *pI2CHandle) {
 
 	//Enable the clock for the I2Cx peripheral
 	I2C_PeriClockControl(pI2CHandle->pI2Cx, ENABLE);
-
-	//Configure CR1 register (ACK bit)
-	tempreg |= (pI2CHandle->I2C_Config.I2C_ACKControl << I2C_CR1_ACK);
-	pI2CHandle->pI2Cx->CR1 = tempreg;
 
 	//Configure CR2 register (FREQ field)
 	tempreg = 0;
@@ -219,11 +222,12 @@ void I2C_DeInit(I2C_RegDef_t *pI2Cx) {
  * @param[in]	- Address to data buffer to transmit
  * @param[in]	- Length of data in bytes
  * @param[in]	- Address of slave device to receive data
+ * @param[in]	- I2C_ENABLE_SR or I2C_DISABLE_SR macro
  *
  * @return		- none
  * @note		- none
  */
-void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t len, uint8_t slaveAddress) {
+void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t len, uint8_t slaveAddress, uint8_t enSR) {
 	//1. Generate the START condition
 	I2C_GenerateStartCondition(pI2CHandle->pI2Cx);
 
@@ -232,7 +236,7 @@ void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t l
 	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_SB));
 
 	//3. Send the address of the slave with r/nw bit set to w (0). (Total 8 bits)
-	I2C_ExecuteAddressPhase(pI2CHandle->pI2Cx, slaveAddress);
+	I2C_ExecuteAddressPhase(pI2CHandle->pI2Cx, slaveAddress, WRITE);
 
 	//4. Confirm that the address phase is completed by checking the ADDR flag in the SR1
 	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_ADDR));
@@ -257,7 +261,85 @@ void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t l
 
 	//8. Generate STOP condition.  Master does not need to wait for completion of the STOP condition
 	//   Note: Generating STOP automatically clears the BTF
-	I2C_GenerateStopCondition(pI2CHandle->pI2Cx);
+	if(enSR == I2C_DISABLE_SR) {
+		I2C_GenerateStopCondition(pI2CHandle->pI2Cx);
+	}
+}
+
+/**
+ * @fn			- I2C_MasterReceiveData
+ * @brief		- This function receives data from slave device over I2C peripheral
+ *
+ * @param[in]	- Address of I2C_Handle_t struct
+ * @param[in]	- Address of data buffer to store data
+ * @param[in]	- Length of data in bytes
+ * @param[in]	- Address of slave device to receive data
+ * @param[in]	- I2C_ENABLE_SR or I2C_DISABLE_SR macro
+ *
+ * @return		- none
+ * @note		- none
+ */
+void I2C_MasterReceiveData(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, uint32_t len, uint8_t slaveAddress, uint8_t enSR) {
+	//1. Generate the START condition
+	I2C_GenerateStartCondition(pI2CHandle->pI2Cx);
+
+	//2. Confirm that start generation is completed by checking the SB flag has been set in SR1
+	//   Note: SCL will be stretched (pulled to LOW) until SB bit is cleared
+	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_SB));
+
+	//3. Send the address of the slave with r/nw bit set to r (1). (Total 8 bits)
+	I2C_ExecuteAddressPhase(pI2CHandle->pI2Cx, slaveAddress, READ);
+
+	//4. Confirm that the address phase is completed by checking the ADDR flag in the SR1
+	while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_ADDR));
+
+	//Procedure to read only 1 byte from slave
+	if(len == 1) {
+		//Disable ACKing
+		I2C_ACKControl(pI2CHandle->pI2Cx, DISABLE);
+		//Clear the ADDR flag
+		I2C_ClearADDRFlag(pI2CHandle->pI2Cx);
+
+		//Wait until RXNE becomes 1
+		while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_RXNE));
+
+		//Generate STOP condition
+		if(enSR == I2C_DISABLE_SR) {
+			I2C_GenerateStopCondition(pI2CHandle->pI2Cx);
+		}
+
+		//Read data in to buffer
+		*pRxBuffer = (uint8_t) pI2CHandle->pI2Cx->DR;
+	} else if(len > 1) {
+		//Clear the ADDR flag
+		I2C_ClearADDRFlag(pI2CHandle->pI2Cx);
+
+		//Read the data until len becomes zero
+		for(uint32_t i = len; i > 0; i--) {
+			//Wait until RXNE becomes 1
+			while(!I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_RXNE));
+
+			//if last 2 bytes are remaining
+			if(i == 2) {
+				//Clear the ack bit
+				I2C_ACKControl(pI2CHandle->pI2Cx, DISABLE);
+
+				//Generate STOP condition
+				if(enSR == I2C_DISABLE_SR) {
+					I2C_GenerateStopCondition(pI2CHandle->pI2Cx);
+				}
+			}
+
+			//Read the data in to buffer
+			*pRxBuffer = (uint8_t) pI2CHandle->pI2Cx->DR;
+
+			//Increment the buffer address
+			pRxBuffer++;
+		}
+	}
+
+	//Restore ACKing
+	I2C_ACKControl(pI2CHandle->pI2Cx, pI2CHandle->I2C_Config.I2C_ACKControl);
 }
 
 
@@ -335,11 +417,14 @@ void I2C_IRQPriorityConfig(uint8_t irqNumber, uint32_t irqPriority) {
  * @return		- none
  * @note		- none
  */
-void I2C_PeripheralControl(I2C_RegDef_t *pI2Cx, uint8_t enOrDis) {
+void I2C_PeripheralControl(I2C_Handle_t *pI2CHandle, uint8_t enOrDis) {
 	if(enOrDis == ENABLE) {
-		pI2Cx->CR1 |= (1 << I2C_CR1_PE);
+		pI2CHandle->pI2Cx->CR1 |= (1 << I2C_CR1_PE);
+
+		//Enable Ack bit after PE=1
+		I2C_ACKControl(pI2CHandle->pI2Cx, pI2CHandle->I2C_Config.I2C_ACKControl);
 	} else {
-		pI2Cx->CR1 &= ~(1 << I2C_CR1_PE);
+		pI2CHandle->pI2Cx->CR1 &= ~(1 << I2C_CR1_PE);
 	}
 }
 
@@ -359,6 +444,24 @@ uint8_t I2C_GetFlagStatus(I2C_RegDef_t *pI2Cx, uint32_t flagName) {
 		return FLAG_SET;
 	} else {
 		return FLAG_RESET;
+	}
+}
+
+/**
+ * @fn			- I2C_ACKControl
+ * @brief		- This function enables or disables hw ACKing for an I2C peripheral
+ *
+ * @param[in]	- Base address of the I2C peripheral
+ * @param[in]	- ENABLE or DISABLE macro
+ *
+ * @return		- none
+ * @note		- none
+ */
+void I2C_ACKControl(I2C_RegDef_t *pI2Cx, uint8_t enOrDis) {
+	if(enOrDis == ENABLE) {
+		pI2Cx->CR1 |= (1 << I2C_CR1_ACK);
+	} else {
+		pI2Cx->CR1 &= ~(1 << I2C_CR1_ACK);
 	}
 }
 

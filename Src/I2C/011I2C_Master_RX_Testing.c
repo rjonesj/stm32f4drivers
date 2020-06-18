@@ -1,12 +1,14 @@
 /*
- * 010I2C_Master_TX_Testing.c
+ * 011I2C_Master_RX_Testing.c
  *
- *  Created on: Jun 17, 2020
+ *  Created on: Jun 18, 2020
  *      Author: rjonesj
  *
- * When button on master is pressed, master should send data to connected Arduino slave over I2C.
- * The data received by Arduino will be displayed on the serial port.
- * Upload 001I2CSlaveRxString to Arduino to be connected as slave SPI device.
+ * When button on master is pressed, master should read and display data from connected Arduino slave over I2C.
+ * Master must first receive the length of data to read the subsequent data from the slave.
+ * 	-Master sends command code 0x51 to read the length (1 byte) of the data from the slave
+ * 	-Master sends command code 0x52 to read the complete data from the slave
+ * Upload 002I2CSlaveTxString to Arduino to be connected as slave SPI device.
  *
  * 1. Use I2C SCL - 100 KHz (Standard mode)
  * 2. Use internal PU resistors for SDA and SCL lines
@@ -26,9 +28,10 @@
 
 #define MY_ADDRESS		 0x61
 #define SLAVE_ADDRESS	 0x68
+#define LEN_CMD			 0x51
+#define DATA_CMD		 0x52
 
 I2C_Handle_t I2C1Handle;
-uint8_t some_data[] = "Hello, this is a test!\n";
 
 void delay(void) {
 	for(int i = 0; i < 500000; i++);
@@ -88,12 +91,27 @@ int main(void) {
 	//Enable the I2C peripheral
 	I2C_PeripheralControl(&I2C1Handle, ENABLE);
 
+	uint8_t dataLen;
+	uint8_t cmdBuffer;
+	uint8_t data[32];
 	while(1) {
 		//Wait for button press
 		while(!GPIO_ReadFromInputPin(GPIOA, GPIO_PIN_NO_0));
 		delay(); // debounce button
 
-		//Send some data to the slave
-		I2C_MasterSendData(&I2C1Handle, some_data, strlen((char*) some_data), SLAVE_ADDRESS, I2C_DISABLE_SR);
+		//Send command to get length from slave
+		cmdBuffer = LEN_CMD;
+		I2C_MasterSendData(&I2C1Handle, &cmdBuffer, 1, SLAVE_ADDRESS, I2C_ENABLE_SR);
+		//Read length information from slave
+		I2C_MasterReceiveData(&I2C1Handle, &dataLen, 1, SLAVE_ADDRESS, I2C_ENABLE_SR);
+
+		//Send command to get String from slave
+		cmdBuffer = DATA_CMD;
+		I2C_MasterSendData(&I2C1Handle, &cmdBuffer, 1, SLAVE_ADDRESS, I2C_ENABLE_SR);
+		//Read data from slave
+		I2C_MasterReceiveData(&I2C1Handle, data, dataLen, SLAVE_ADDRESS, I2C_DISABLE_SR);
+
+		//display data
+		printf("Slave returned: %s", data);
 	}
 }
