@@ -8,7 +8,7 @@
  * Master must first receive the length of data to read the subsequent data from the slave.
  * 	-Master sends command code 0x51 to read the length (1 byte) of the data from the slave
  * 	-Master sends command code 0x52 to read the complete data from the slave
- * Upload 002I2CSlaveTxString to Arduino to be connected as slave SPI device.
+ * Upload 002I2CSlaveTxString to Arduino to be connected as slave I2C device.
  *
  * 1. Use I2C SCL - 100 KHz (Standard mode)
  * 2. Use internal PU resistors for SDA and SCL lines

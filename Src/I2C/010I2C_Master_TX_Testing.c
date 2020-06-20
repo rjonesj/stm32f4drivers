@@ -6,7 +6,7 @@
  *
  * When button on master is pressed, master should send data to connected Arduino slave over I2C.
  * The data received by Arduino will be displayed on the serial port.
- * Upload 001I2CSlaveRxString to Arduino to be connected as slave SPI device.
+ * Upload 001I2CSlaveRxString to Arduino to be connected as slave I2C device.
  *
  * 1. Use I2C SCL - 100 KHz (Standard mode)
  * 2. Use internal PU resistors for SDA and SCL lines
