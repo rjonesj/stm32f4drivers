@@ -17,12 +17,18 @@ uint8_t APB1_PreScaler[4] = {2,4,8,16};
 #define READ		1
 #define WRITE		0
 
+static void delay(void);
 static uint32_t RCC_GetPLLOutputClock();
 static uint32_t RCC_GetPCLK1_Value();
 static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx);
 static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress, uint8_t readOrWrite);
 static void I2C_ClearADDRFlag(I2C_Handle_t *pI2CHandle);
 static void I2C_MasterHandleRXNEInterrupt(I2C_Handle_t *pI2CHandle);
+
+
+static void delay(void) {
+	for(int i = 0; i < 250; i++);
+}
 
 static uint32_t RCC_GetPLLOutputClock() {
 	//TODO: Implement function
@@ -479,6 +485,32 @@ uint8_t I2C_MasterReceiveDataIT(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, ui
 		return busystate;
 }
 
+/**
+ * @fn			- I2C_SlaveSendData
+ * @brief		- This function sends one byte of data when device is in slave mode
+ *
+ * @param[in]	- Address of I2C_RegDef_t struct
+ * @param[in]	- Data to be sent
+ *
+ * @return		- none
+ * @note		- none
+ */
+void I2C_SlaveSendData(I2C_RegDef_t *pI2Cx, uint8_t data) {
+	pI2Cx->DR = data;
+}
+
+/**
+ * @fn			- I2C_SlaveReceiveData
+ * @brief		- This function receives one byte of data when device is in slave mode
+ *
+ * @param[in]	- Address of I2C_RegDef_t struct
+ *
+ * @return		- received data byte
+ * @note		- none
+ */
+uint8_t I2C_SlaveReceiveData(I2C_RegDef_t *pI2Cx) {
+	return (uint8_t) pI2Cx->DR;
+}
 
 /**
  * IRQ Configuration and ISR handling
@@ -628,6 +660,13 @@ void I2C_EV_IRQHandling(I2C_Handle_t *pI2CHandle) {
 					pI2CHandle->pTxBuffer++;
 				}
 			}
+		} else {
+			//device in slave mode
+			//Verify slave is in transmitter mode and AF flag is not set
+			delay(); // allow time for AF flag to be set
+			if((pI2CHandle->pI2Cx->SR2 & (1 << I2C_SR2_TRA)) && (!((pI2CHandle->pI2Cx->SR1 >> I2C_SR1_AF) & 0x1))) {
+				I2C_ApplicationEventCallback(pI2CHandle, I2C_EV_DATA_REQ);
+			}
 		}
 	}
 
@@ -638,6 +677,12 @@ void I2C_EV_IRQHandling(I2C_Handle_t *pI2CHandle) {
 		if(pI2CHandle->pI2Cx->SR2 & (1 << I2C_SR2_MSL)) {
 			if(pI2CHandle->txRxState == I2C_BUSY_RX) {
 				I2C_MasterHandleRXNEInterrupt(pI2CHandle);
+			}
+		} else {
+			//device in slave mode
+			//Verify slave is in receiver mode
+			if(!(pI2CHandle->pI2Cx->SR2 & (1 << I2C_SR2_TRA))) {
+				I2C_ApplicationEventCallback(pI2CHandle, I2C_EV_DATA_RCV);
 			}
 		}
 	}
@@ -828,8 +873,39 @@ void I2C_CloseReception(I2C_Handle_t *pI2CHandle) {
 	I2C_ACKControl(pI2CHandle->pI2Cx, pI2CHandle->I2C_Config.I2C_ACKControl);
 }
 
+/**
+ * @fn			- I2C_GenerateStopCondition
+ * @brief		- This function generates the STOP condition by setting the STOP bit in the CR1 register
+ *
+ * @param[in]	- Base address of the I2C_RegDef_t struct
+ *
+ * @return		- none
+ * @note		- none
+ */
 void I2C_GenerateStopCondition(I2C_RegDef_t *pI2Cx) {
 	pI2Cx->CR1 |= (1 << I2C_CR1_STOP);
+}
+
+/**
+ * @fn			- I2C_SlaveConfigureCallbackEvents
+ * @brief		- This enables or disables interrupt events when device is configured in slave mode
+ *
+ * @param[in]	- Base address of the I2C_RegDef_t struct
+ * @param[in]	- ENABLE or DISABLE macro
+ *
+ * @return		- none
+ * @note		- none
+ */
+void I2C_SlaveConfigureCallbackEvents(I2C_RegDef_t *pI2Cx, uint8_t enOrDis) {
+	if(enOrDis == ENABLE) {
+		pI2Cx->CR2 |= ( 1 << I2C_CR2_ITEVTEN);
+		pI2Cx->CR2 |= ( 1 << I2C_CR2_ITBUFEN);
+		pI2Cx->CR2 |= ( 1 << I2C_CR2_ITERREN);
+	} else {
+		pI2Cx->CR2 &= ~( 1 << I2C_CR2_ITEVTEN);
+		pI2Cx->CR2 &= ~( 1 << I2C_CR2_ITBUFEN);
+		pI2Cx->CR2 &= ~( 1 << I2C_CR2_ITERREN);
+	}
 }
 
 /**
