@@ -545,7 +545,7 @@ void USART_SetBaudRate(USART_RegDef_t *pUSARTx, uint32_t BaudRate) {
 	}else
 	{
 	   //over sampling by 16
-	   F_part = ((( F_part * 18)+ 50) / 100) & ((uint8_t)0x0F);
+	   F_part = ((( F_part * 16)+ 50) / 100) & ((uint8_t)0x0F);
 
 	}
 
