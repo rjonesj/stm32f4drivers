@@ -6,10 +6,8 @@
  */
 
 #include "stm32f407xx_i2c_driver.h"
+#include "stm32f407xx_rcc_driver.h"
 #include <string.h>
-
-uint16_t AHB_PreScaler[8] = {2,4,8,16,64,128,256,512};
-uint8_t APB1_PreScaler[4] = {2,4,8,16};
 
 /**
  * Private functions
@@ -18,8 +16,6 @@ uint8_t APB1_PreScaler[4] = {2,4,8,16};
 #define WRITE		0
 
 static void delay(void);
-static uint32_t RCC_GetPLLOutputClock();
-static uint32_t RCC_GetPCLK1_Value();
 static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx);
 static void I2C_ExecuteAddressPhase(I2C_RegDef_t *pI2Cx, uint8_t slaveAddress, uint8_t readOrWrite);
 static void I2C_ClearADDRFlag(I2C_Handle_t *pI2CHandle);
@@ -28,48 +24,6 @@ static void I2C_MasterHandleRXNEInterrupt(I2C_Handle_t *pI2CHandle);
 
 static void delay(void) {
 	for(int i = 0; i < 250; i++);
-}
-
-static uint32_t RCC_GetPLLOutputClock() {
-	//TODO: Implement function
-	return 0;
-}
-
-static uint32_t RCC_GetPCLK1_Value() {
-	uint32_t pclk1, systemclk;
-	uint8_t clksrc, temp, ahbp, apb1p;
-
-	clksrc = ((RCC->CFGR >> 2) & 0x3);
-	if(clksrc == 0) {
-		//HSI oscillator
-		systemclk = 16000000;
-	} else if(clksrc == 1) {
-		//HSE oscillator
-		systemclk = 8000000;
-	} else if(clksrc == 2) {
-		//PLL
-		systemclk = RCC_GetPLLOutputClock();
-	}
-
-	//AHBP prescaler
-	temp = ((RCC->CFGR >> 4) & 0xF);
-	if(temp < 8) {
-		ahbp = 1;
-	} else {
-		ahbp = AHB_PreScaler[temp-8];
-	}
-
-	//APB1 prescaler
-	temp = ((RCC->CFGR >> 10) & 0x7);
-	if(temp < 4) {
-		apb1p = 1;
-	} else {
-		apb1p = APB1_PreScaler[temp-4];
-	}
-
-	pclk1 = (systemclk / ahbp) / apb1p;
-
-	return pclk1;
 }
 
 static void I2C_GenerateStartCondition(I2C_RegDef_t *pI2Cx) {

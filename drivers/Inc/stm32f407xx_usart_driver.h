@@ -28,6 +28,12 @@ typedef struct {
 typedef struct {
 	USART_RegDef_t *pUSARTx; 			/* This holds the base address of the USART(1-6) peripheral */
 	USART_Config_t USART_Config;		/* This holds USART configuration settings */
+	uint8_t		*pTxBuffer;			/* Holds the application's Tx buffer address */
+	uint8_t		*pRxBuffer;			/* Holds the application's Rx buffer address */
+	uint32_t	txLen;				/* Tx Length */
+	uint32_t	rxLen;				/* Rx Length */
+	uint8_t		txState;			/* Holds the Tx state defined in @USART_STATE */
+	uint8_t		rxState;			/* Holds the Rx state defined in @USART_STATE */
 } USART_Handle_t;
 
 
@@ -105,6 +111,14 @@ typedef struct {
 #define USART_FLAG_LBD						(1 << USART_SR_LBD)
 #define USART_FLAG_CTS						(1 << USART_SR_CTS)
 
+/**
+ * Communication state of peripheral
+ * @USART_STATE
+ */
+#define USART_READY							0
+#define USART_BUSY_IN_RX					1
+#define USART_BUSY_IN_TX					2
+
 
 /******************************************************************************************************
  * 											APIs supported by this driver
@@ -125,8 +139,8 @@ void USART_DeInit(USART_RegDef_t *pUSARTx);
 /**
  * Data Send and Receive
  */
-void USART_SendData(USART_RegDef_t *pUSARTx, uint8_t *pTxBuffer, uint32_t len);
-void USART_ReceiveData(USART_RegDef_t *pUSARTx, uint8_t *pRxBuffer, uint32_t len);
+void USART_SendData(USART_Handle_t *pUSARTHandle, uint8_t *pTxBuffer, uint32_t len);
+void USART_ReceiveData(USART_Handle_t *pUSARTHandle, uint8_t *pRxBuffer, uint32_t len);
 uint8_t USART_SendDataIT(USART_Handle_t *pUSARTHandle, uint8_t *pTxBuffer, uint32_t len);
 uint8_t USART_ReceiveDataIT(USART_Handle_t *pUSARTHandle, uint8_t *pRxBuffer, uint32_t len);
 
@@ -143,6 +157,7 @@ void USART_IRQHandling(USART_Handle_t *pUSARTHandle);
 void USART_PeripheralControl(USART_RegDef_t *pUSARTx, uint8_t enOrDis);
 uint8_t USART_GetFlagStatus(USART_RegDef_t *pUSARTx, uint32_t flagName);
 void USART_ClearFlag(USART_RegDef_t *pUSARTx, uint32_t flagName);
+void USART_SetBaudRate(USART_RegDef_t *pUSARTx, uint32_t BaudRate);
 
 /**
  * Application callback
