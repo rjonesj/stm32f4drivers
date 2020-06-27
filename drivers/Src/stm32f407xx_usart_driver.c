@@ -73,7 +73,7 @@ void USART_Init(USART_Handle_t *pUSARTHandle) {
 	/******************************** Configuration of CR1******************************************/
 
 		//Enable the Clock for given USART peripheral
-		USART_PeripheralControl(pUSARTHandle->pUSARTx, ENABLE);
+		USART_PeriClockControl(pUSARTHandle->pUSARTx, ENABLE);
 
 		//Enable USART Tx and Rx engines according to the USART_Mode configuration item
 		if ( pUSARTHandle->USART_Config.USART_Mode == USART_MODE_ONLY_RX)
