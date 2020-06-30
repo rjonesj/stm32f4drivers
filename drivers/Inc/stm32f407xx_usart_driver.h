@@ -119,6 +119,19 @@ typedef struct {
 #define USART_BUSY_IN_RX					1
 #define USART_BUSY_IN_TX					2
 
+/**
+ * Application event of peripheral
+ * @USART_EVENT
+ */
+#define USART_EVENT_TX_CMPLT				0
+#define USART_EVENT_RX_CMPLT				1
+#define USART_EVENT_CTS						2
+#define USART_EVENT_IDLE					3
+#define USART_EVENT_ORE						4
+#define USART_ERREVENT_FE					5
+#define USART_ERREVENT_NF					6
+#define USART_ERREVENT_ORE					7
+
 
 /******************************************************************************************************
  * 											APIs supported by this driver
