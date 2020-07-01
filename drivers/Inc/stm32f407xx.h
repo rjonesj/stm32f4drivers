@@ -101,6 +101,10 @@
 #define USART6_BASEADDR		(APB2PERIPH_BASE + 0x1400U)
 #define EXTI_BASEADDR		(APB2PERIPH_BASE + 0x3C00U)
 #define SYSCFG_BASEADDR		(APB2PERIPH_BASE + 0x3800U)
+#define ADC1_BASEADDR		(APB2PERIPH_BASE + 0x2000U)
+#define ADC2_BASEADDR		(ADC1_BASEADDR + 0x100U)
+#define ADC3_BASEADDR		(ADC1_BASEADDR + 0x200U)
+#define ADCC_BASEADDR		(ADC1_BASEADDR + 0x300U)
 
 
 /*******						Peripheral register definition structures 						********/
@@ -219,6 +223,37 @@ typedef struct
 	__vo uint32_t GTPR;			/** Address Offset: 0x18 - Guard time and prescaler register */
 } USART_RegDef_t;
 
+typedef struct
+{
+	__vo uint32_t SR;			/** Address Offset: 0x00 - ADC status register */
+	__vo uint32_t CR1;			/** Address Offset: 0x04 - ADC control register 1 */
+	__vo uint32_t CR2;			/** Address Offset: 0x08 - ADC control register 2   */
+	__vo uint32_t SMPR1;		/** Address Offset: 0x0C - ADC sample time register 1   */
+	__vo uint32_t SMPR2;		/** Address Offset: 0x10 - ADC sample time register 2  */
+	__vo uint32_t JOFR1;		/** Address Offset: 0x14 - ADC injected channel data offset register 1 */
+	__vo uint32_t JOFR2;		/** Address Offset: 0x18 - ADC injected channel data offset register 2 */
+	__vo uint32_t JOFR3;		/** Address Offset: 0x1C - ADC injected channel data offset register 3 */
+	__vo uint32_t JOFR4;		/** Address Offset: 0x20 - ADC injected channel data offset register 4 */
+	__vo uint32_t HTR;			/** Address Offset: 0x24 - ADC watchdog higher threshold register */
+	__vo uint32_t LTR;			/** Address Offset: 0x28 - ADC watchdog lower threshold register */
+	__vo uint32_t SQR1;			/** Address Offset: 0x2C - ADC regular sequence register 1 */
+	__vo uint32_t SQR2;			/** Address Offset: 0x30 - ADC regular sequence register 2 */
+	__vo uint32_t SQR3;			/** Address Offset: 0x34 - ADC regular sequence register 3 */
+	__vo uint32_t JSQR;			/** Address Offset: 0x38 - ADC injected sequence register */
+	__vo uint32_t JDR1;			/** Address Offset: 0x3C - ADC injected data register 1 */
+	__vo uint32_t JDR2;			/** Address Offset: 0x40 - ADC injected data register 2 */
+	__vo uint32_t JDR3;			/** Address Offset: 0x44 - ADC injected data register 3 */
+	__vo uint32_t JDR4;			/** Address Offset: 0x48 - ADC injected data register 4 */
+	__vo uint32_t DR;			/** Address Offset: 0x4C - ADC regular data register */
+} ADC_RegDef_t;
+
+typedef struct
+{
+	__vo uint32_t CSR;			/** Address Offset: 0x00 - ADC Common status register  */
+	__vo uint32_t CCR;			/** Address Offset: 0x04 - ADC common control register */
+	__vo uint32_t CDR;			/** Address Offset: 0x08 - ADC common regular data register for dual and triple modes  */
+} ADC_Common_RegDef_t;
+
 
 /**
  * peripheral definitions (Peripheral base addresses typecasted to XXX_RegDef_t)
@@ -251,6 +286,11 @@ typedef struct
 #define UART4				((USART_RegDef_t*)UART4_BASEADDR)
 #define UART5				((USART_RegDef_t*)UART5_BASEADDR)
 #define USART6				((USART_RegDef_t*)USART6_BASEADDR)
+
+#define ADC1				((ADC_RegDef_t*)ADC1_BASEADDR)
+#define ADC2				((ADC_RegDef_t*)ADC2_BASEADDR)
+#define ADC3				((ADC_RegDef_t*)ADC3_BASEADDR)
+#define ADCC				((ADC_Common_RegDef_t*)ADCC_BASEADDR)
 
 /**
  * Clock Enable Macros for GPIOx peripherals
@@ -290,6 +330,13 @@ typedef struct
 #define UART4_PCLK_EN()		(RCC->APB1ENR |= (1 << 19))
 #define UART5_PCLK_EN()		(RCC->APB1ENR |= (1 << 20))
 #define USART6_PCLK_EN()	(RCC->APB2ENR |= (1 << 5))
+
+/**
+ * Clock Enable Macros for ADCx peripherals
+ */
+#define ADC1_PCLK_EN()	(RCC->APB2ENR |= (1 << 8))
+#define ADC2_PCLK_EN()	(RCC->APB2ENR |= (1 << 9))
+#define ADC3_PCLK_EN()	(RCC->APB2ENR |= (1 << 10))
 
 /**
  * Clock Enable Macros for SYSCFG peripheral
@@ -333,6 +380,13 @@ typedef struct
 #define UART4_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 19))
 #define UART5_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 20))
 #define USART6_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 5))
+
+/**
+ * Clock Disable Macros for ADCx peripherals
+ */
+#define ADC1_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 8))
+#define ADC2_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 9))
+#define ADC3_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 10))
 
 /**
  * Clock Disable Macros for SYSCFG peripheral
@@ -379,6 +433,12 @@ typedef struct
 #define UART4_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 19)); (RCC->APB1RSTR &= ~(1 << 19)); } while(0)
 #define UART5_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 20)); (RCC->APB1RSTR &= ~(1 << 20)); } while(0)
 #define USART6_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 5)); (RCC->APB2RSTR &= ~(1 << 5)); } while(0)
+
+/**
+ * Register Reset Macros for ADCx peripherals
+ * Bit must first be set then cleared so it does not stay in reset state
+ */
+#define ADC_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 8)); (RCC->APB2RSTR &= ~(1 << 8)); } while(0)
 
 
 /**
@@ -617,6 +677,94 @@ typedef struct
 #define USART_GTPR_PSC			0
 #define USART_GTPR_GT			8
 
+
+/*******************************************************************************************************************
+ * Bit position definitions of ADC peripheral
+ *******************************************************************************************************************/
+
+/*
+ * Bit position definitions for ADC_SR
+ */
+#define ADC_SR_AWD			0
+#define ADC_SR_EOC			1
+#define ADC_SR_JEOC			2
+#define ADC_SR_JSTRT		3
+#define ADC_SR_STRT			4
+#define ADC_SR_OVR			5
+
+/*
+ * Bit position definitions for ADC_CR1
+ */
+#define ADC_CR1_AWDCH			0
+#define ADC_CR1_EOCIE			5
+#define ADC_CR1_AWDIE			6
+#define ADC_CR1_JEOCIE			7
+#define ADC_CR1_SCAN			8
+#define ADC_CR1_AWDSGL			9
+#define ADC_CR1_JAUTO			10
+#define ADC_CR1_DISCEN			11
+#define ADC_CR1_JDISCEN			12
+#define ADC_CR1_DISCNUM			13
+#define ADC_CR1_JAWDEN			22
+#define ADC_CR1_AWDEN			23
+#define ADC_CR1_RES				24
+#define ADC_CR1_OVRIE			26
+
+/*
+ * Bit position definitions for ADC_CR2
+ */
+#define ADC_CR2_ADON			0
+#define ADC_CR2_CONT			1
+#define ADC_CR2_DMA				8
+#define ADC_CR2_DDS				9
+#define ADC_CR2_EOCS			10
+#define ADC_CR2_ALIGN			11
+#define ADC_CR2_JEXTSEL			16
+#define ADC_CR2_JEXTEN			20
+#define ADC_CR2_JSWSTART		22
+#define ADC_CR2_EXTSEL			24
+#define ADC_CR2_EXTEN			28
+#define ADC_CR2_SWSTART			30
+
+/*
+ * Bit position definitions for ADC_CSR
+ */
+#define ADC_CSR_AWD1			0
+#define ADC_CSR_EOC1			1
+#define ADC_CSR_JEOC1			2
+#define ADC_CSR_JSTRT1			3
+#define ADC_CSR_STRT1			4
+#define ADC_CSR_OVR1			5
+#define ADC_CSR_AWD2			8
+#define ADC_CSR_EOC2			9
+#define ADC_CSR_JEOC2			10
+#define ADC_CSR_JSTRT2			11
+#define ADC_CSR_STRT2			12
+#define ADC_CSR_OVR2			13
+#define ADC_CSR_AWD3			16
+#define ADC_CSR_EOC3			17
+#define ADC_CSR_JEOC3			18
+#define ADC_CSR_JSTRT3			19
+#define ADC_CSR_STRT3			20
+#define ADC_CSR_OVR3			21
+
+/*
+ * Bit position definitions for ADC_CCR
+ */
+#define ADC_CCR_MULTI			0
+#define ADC_CCR_DELAY			8
+#define ADC_CCR_DDS				13
+#define ADC_CCR_DMA				14
+#define ADC_CCR_ADCPRE			16
+#define ADC_CCR_VBATE			22
+#define ADC_CCR_TSVREFE			23
+
+/*
+ * Bit position definitions for ADC_CDR
+ */
+#define ADC_CDR_DATA1			0
+#define ADC_CDR_DATA2			16
+
 /**
  * IRQ (Interrupt Request) Number of STM32F407x MCU
  * TODO: Complete the list for other peripherals
@@ -650,6 +798,8 @@ typedef struct
 #define IRQ_NO_UART5		53
 #define IRQ_NO_USART6		71
 
+#define IRQ_NO_ADC			18
+
 /**
  * IRQ Priority levels
  */
@@ -675,5 +825,6 @@ typedef struct
 #include "stm32f407xx_i2c_driver.h"
 #include "stm32f407xx_usart_driver.h"
 #include "stm32f407xx_rcc_driver.h"
+#include "stm32f407xx_adc_driver.h"
 
 #endif /* INC_STM32F407XX_H_ */
