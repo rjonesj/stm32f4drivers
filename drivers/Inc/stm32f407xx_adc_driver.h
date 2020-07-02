@@ -91,7 +91,7 @@ void ADC_PeriClockControl(ADC_RegDef_t *pADCx, uint8_t EnOrDis);
  * Initialization and De-Initialization
  */
 void ADC_Init(ADC_Handle_t *pADCHandle);
-void ADC_DeInit(ADC_RegDef_t *pADCx);
+void ADC_DeInit(void);
 
 /**
  * Data read and write
@@ -103,6 +103,18 @@ uint16_t ADC_ReadData(ADC_RegDef_t *pADCx);
  */
 void ADC_IRQConfig(uint8_t irqNumber, uint8_t enOrDis);
 void ADC_IRQPriorityConfig(uint8_t irqNumber, uint32_t irqPriority);
-void ADC_IRQHandling(uint8_t pinNumber);
+void ADC_IRQHandling(ADC_Handle_t *pADCHandle);
+
+/**
+ * Other Control APIs
+ */
+void ADC_PeripheralControl(ADC_RegDef_t *pADCx, uint8_t enOrDis);
+void ADC_StartConversion(ADC_RegDef_t *pADCx);
+
+/**
+ * Application callback
+ */
+void ADC_ApplicationEventCallback(ADC_Handle_t *pADCHandle, uint8_t appEvent);
+
 
 #endif /* INC_STM32F407XX_ADC_DRIVER_H_ */
