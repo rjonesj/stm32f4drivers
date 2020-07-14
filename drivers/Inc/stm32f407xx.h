@@ -10,41 +10,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-
-#define __vo volatile
-#define __weak __attribute__((weak))
-
-/**********************************************START: Processor Specific Details ************************************************/
-
-/**
- * 		ARM Cortex M4 Processor NVIC ISERx register addresses
- */
-#define NVIC_ISER0			((__vo uint32_t*)0xE000E100)
-#define NVIC_ISER1			((__vo uint32_t*)0xE000E104)
-#define NVIC_ISER2			((__vo uint32_t*)0xE000E108)
-#define NVIC_ISER3			((__vo uint32_t*)0xE000E10C)
-
-/**
- * 		ARM Cortex M4 Processor NVIC ICERx register addresses
- */
-#define NVIC_ICER0			((__vo uint32_t*)0xE000E180)
-#define NVIC_ICER1			((__vo uint32_t*)0xE000E184)
-#define NVIC_ICER2			((__vo uint32_t*)0xE000E188)
-#define NVIC_ICER3			((__vo uint32_t*)0xE000E18C)
-
-/**
- * 		ARM Cortex M4 Processor Priority Register Address Calculation
- */
-#define NVIC_PR_BASE_ADDR	((__vo uint32_t*)0xE000E400)
-
-
-/**
- * 		ARM Cortex M4 Processor number of priority bits implemented in Priority Register
- */
-#define NO_PR_BITS_IMPLEMENTED	4
-
-
-/**********************************************END: Processor Specific Details ************************************************/
+#include "constants.h"
 
 /**
  * Base address of Flash and SRAM memories
@@ -79,6 +45,24 @@
 #define GPIOH_BASEADDR		(AHB1PERIPH_BASE + 0x1C00U)
 #define GPIOI_BASEADDR		(AHB1PERIPH_BASE + 0x2000U)
 #define RCC_BASEADDR		(AHB1PERIPH_BASE + 0x3800U)
+#define DMA1_BASEADDR		(AHB1PERIPH_BASE + 0x6000U)
+#define DMA1_Stream0_BASE   (DMA1_BASEADDR + 0x010UL)
+#define DMA1_Stream1_BASE   (DMA1_BASEADDR + 0x028UL)
+#define DMA1_Stream2_BASE   (DMA1_BASEADDR + 0x040UL)
+#define DMA1_Stream3_BASE   (DMA1_BASEADDR + 0x058UL)
+#define DMA1_Stream4_BASE   (DMA1_BASEADDR + 0x070UL)
+#define DMA1_Stream5_BASE   (DMA1_BASEADDR + 0x088UL)
+#define DMA1_Stream6_BASE   (DMA1_BASEADDR + 0x0A0UL)
+#define DMA1_Stream7_BASE   (DMA1_BASEADDR + 0x0B8UL)
+#define DMA2_BASEADDR		(AHB1PERIPH_BASE + 0x6400U)
+#define DMA2_Stream0_BASE   (DMA2_BASEADDR + 0x010UL)
+#define DMA2_Stream1_BASE   (DMA2_BASEADDR + 0x028UL)
+#define DMA2_Stream2_BASE   (DMA2_BASEADDR + 0x040UL)
+#define DMA2_Stream3_BASE   (DMA2_BASEADDR + 0x058UL)
+#define DMA2_Stream4_BASE   (DMA2_BASEADDR + 0x070UL)
+#define DMA2_Stream5_BASE   (DMA2_BASEADDR + 0x088UL)
+#define DMA2_Stream6_BASE   (DMA2_BASEADDR + 0x0A0UL)
+#define DMA2_Stream7_BASE   (DMA2_BASEADDR + 0x0B8UL)
 
 /**
  * Base addresses of peripherals on APB1 bus
@@ -254,6 +238,23 @@ typedef struct
 	__vo uint32_t CDR;			/** Address Offset: 0x08 - ADC common regular data register for dual and triple modes  */
 } ADC_Common_RegDef_t;
 
+typedef struct
+{
+	__vo uint32_t CR;     /*!< DMA stream x configuration register, Address offset: 0x10 + 0x18 × stream number      */
+	__vo uint32_t NDTR;   /*!< DMA stream x number of data register, Address offset: 0x14 + 0x18 × stream number     */
+	__vo uint32_t PAR;    /*!< DMA stream x peripheral address register, Address offset: 0x18 + 0x18 × stream number */
+	__vo uint32_t M0AR;   /*!< DMA stream x memory 0 address register, Address offset: 0x1C + 0x18 × stream number   */
+	__vo uint32_t M1AR;   /*!< DMA stream x memory 1 address register, Address offset: 0x20 + 0x18 × stream number   */
+	__vo uint32_t FCR;    /*!< DMA stream x FIFO control register, Address offset: 0x24 + 0x24 × stream number       */
+} DMA_Stream_RegDef_t;
+
+typedef struct
+{
+	__vo uint32_t LISR;   /*!< DMA low interrupt status register,      Address offset: 0x00 */
+	__vo uint32_t HISR;   /*!< DMA high interrupt status register,     Address offset: 0x04 */
+	__vo uint32_t LIFCR;  /*!< DMA low interrupt flag clear register,  Address offset: 0x08 */
+	__vo uint32_t HIFCR;  /*!< DMA high interrupt flag clear register, Address offset: 0x0C */
+} DMA_RegDef_t;
 
 /**
  * peripheral definitions (Peripheral base addresses typecasted to XXX_RegDef_t)
@@ -267,6 +268,25 @@ typedef struct
 #define GPIOG				((GPIO_RegDef_t*)GPIOG_BASEADDR)
 #define GPIOH				((GPIO_RegDef_t*)GPIOH_BASEADDR)
 #define GPIOI				((GPIO_RegDef_t*)GPIOI_BASEADDR)
+
+#define DMA1				((DMA_RegDef_t*)DMA1_BASEADDR)
+#define DMA1_Stream0        ((DMA_Stream_RegDef_t *) DMA1_Stream0_BASE)
+#define DMA1_Stream1        ((DMA_Stream_RegDef_t *) DMA1_Stream1_BASE)
+#define DMA1_Stream2        ((DMA_Stream_RegDef_t *) DMA1_Stream2_BASE)
+#define DMA1_Stream3        ((DMA_Stream_RegDef_t *) DMA1_Stream3_BASE)
+#define DMA1_Stream4        ((DMA_Stream_RegDef_t *) DMA1_Stream4_BASE)
+#define DMA1_Stream5        ((DMA_Stream_RegDef_t *) DMA1_Stream5_BASE)
+#define DMA1_Stream6        ((DMA_Stream_RegDef_t *) DMA1_Stream6_BASE)
+#define DMA1_Stream7        ((DMA_Stream_RegDef_t *) DMA1_Stream7_BASE)
+#define DMA2				((DMA_RegDef_t*)DMA2_BASEADDR)
+#define DMA2_Stream0        ((DMA_Stream_RegDef_t *) DMA2_Stream0_BASE)
+#define DMA2_Stream1        ((DMA_Stream_RegDef_t *) DMA2_Stream1_BASE)
+#define DMA2_Stream2        ((DMA_Stream_RegDef_t *) DMA2_Stream2_BASE)
+#define DMA2_Stream3        ((DMA_Stream_RegDef_t *) DMA2_Stream3_BASE)
+#define DMA2_Stream4        ((DMA_Stream_RegDef_t *) DMA2_Stream4_BASE)
+#define DMA2_Stream5        ((DMA_Stream_RegDef_t *) DMA2_Stream5_BASE)
+#define DMA2_Stream6        ((DMA_Stream_RegDef_t *) DMA2_Stream6_BASE)
+#define DMA2_Stream7        ((DMA_Stream_RegDef_t *) DMA2_Stream7_BASE)
 
 #define RCC					((RCC_RegDef_t*)RCC_BASEADDR)
 #define EXTI				((EXTI_RegDef_t*)EXTI_BASEADDR)
@@ -291,178 +311,6 @@ typedef struct
 #define ADC2				((ADC_RegDef_t*)ADC2_BASEADDR)
 #define ADC3				((ADC_RegDef_t*)ADC3_BASEADDR)
 #define ADCC				((ADC_Common_RegDef_t*)ADCC_BASEADDR)
-
-/**
- * Clock Enable Macros for GPIOx peripherals
- */
-#define GPIOA_PCLK_EN()		(RCC->AHB1ENR |= (1 << 0))
-#define GPIOB_PCLK_EN()		(RCC->AHB1ENR |= (1 << 1))
-#define GPIOC_PCLK_EN()		(RCC->AHB1ENR |= (1 << 2))
-#define GPIOD_PCLK_EN()		(RCC->AHB1ENR |= (1 << 3))
-#define GPIOE_PCLK_EN()		(RCC->AHB1ENR |= (1 << 4))
-#define GPIOF_PCLK_EN()		(RCC->AHB1ENR |= (1 << 5))
-#define GPIOG_PCLK_EN()		(RCC->AHB1ENR |= (1 << 6))
-#define GPIOH_PCLK_EN()		(RCC->AHB1ENR |= (1 << 7))
-#define GPIOI_PCLK_EN()		(RCC->AHB1ENR |= (1 << 8))
-
-/**
- * Clock Enable Macros for I2Cx peripherals
- */
-#define I2C1_PCLK_EN()		(RCC->APB1ENR |= (1 << 21))
-#define I2C2_PCLK_EN()		(RCC->APB1ENR |= (1 << 22))
-#define I2C3_PCLK_EN()		(RCC->APB1ENR |= (1 << 23))
-
-
-/**
- * Clock Enable Macros for SPIx peripherals
- */
-#define SPI1_PCLK_EN()		(RCC->APB2ENR |= (1 << 12))
-#define SPI2_PCLK_EN()		(RCC->APB1ENR |= (1 << 14))
-#define SPI3_PCLK_EN()		(RCC->APB1ENR |= (1 << 15))
-
-
-/**
- * Clock Enable Macros for USARTx peripherals
- */
-#define USART1_PCLK_EN()	(RCC->APB2ENR |= (1 << 4))
-#define USART2_PCLK_EN()	(RCC->APB1ENR |= (1 << 17))
-#define USART3_PCLK_EN()	(RCC->APB1ENR |= (1 << 18))
-#define UART4_PCLK_EN()		(RCC->APB1ENR |= (1 << 19))
-#define UART5_PCLK_EN()		(RCC->APB1ENR |= (1 << 20))
-#define USART6_PCLK_EN()	(RCC->APB2ENR |= (1 << 5))
-
-/**
- * Clock Enable Macros for ADCx peripherals
- */
-#define ADC1_PCLK_EN()	(RCC->APB2ENR |= (1 << 8))
-#define ADC2_PCLK_EN()	(RCC->APB2ENR |= (1 << 9))
-#define ADC3_PCLK_EN()	(RCC->APB2ENR |= (1 << 10))
-
-/**
- * Clock Enable Macros for SYSCFG peripheral
- */
-#define SYSCFG_PCLK_EN()	(RCC->APB2ENR |= (1 << 14))
-
-
-/**
- * Clock Disable Macros for GPIOx peripherals
- */
-#define GPIOA_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 0))
-#define GPIOB_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 1))
-#define GPIOC_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 2))
-#define GPIOD_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 3))
-#define GPIOE_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 4))
-#define GPIOF_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 5))
-#define GPIOG_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 6))
-#define GPIOH_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 7))
-#define GPIOI_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 8))
-
-/**
- * Clock Disable Macros for I2Cx peripherals
- */
-#define I2C1_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 21))
-#define I2C2_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 22))
-#define I2C3_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 23))
-
-/**
- * Clock Disable Macros for SPIx peripherals
- */
-#define SPI1_PCLK_DS()		(RCC->APB2ENR &= ~(1 << 12))
-#define SPI2_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 14))
-#define SPI3_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 15))
-
-/**
- * Clock Disable Macros for USARTx peripherals
- */
-#define USART1_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 4))
-#define USART2_PCLK_DS()	(RCC->APB1ENR &= ~(1 << 17))
-#define USART3_PCLK_DS()	(RCC->APB1ENR &= ~(1 << 18))
-#define UART4_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 19))
-#define UART5_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 20))
-#define USART6_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 5))
-
-/**
- * Clock Disable Macros for ADCx peripherals
- */
-#define ADC1_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 8))
-#define ADC2_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 9))
-#define ADC3_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 10))
-
-/**
- * Clock Disable Macros for SYSCFG peripheral
- */
-#define SYSCFG_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 14))
-
-/**
- * Register Reset Macros for GPIOx peripherals
- * Bit must first be set then cleared so it does not stay in reset state
- */
-#define GPIOA_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 0)); (RCC->AHB1RSTR &= ~(1 << 0)); } while(0) //technique to execute multiple statements in single macro
-#define GPIOB_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 1)); (RCC->AHB1RSTR &= ~(1 << 1)); } while(0)
-#define GPIOC_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 2)); (RCC->AHB1RSTR &= ~(1 << 2)); } while(0)
-#define GPIOD_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 3)); (RCC->AHB1RSTR &= ~(1 << 3)); } while(0)
-#define GPIOE_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 4)); (RCC->AHB1RSTR &= ~(1 << 4)); } while(0)
-#define GPIOF_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 5)); (RCC->AHB1RSTR &= ~(1 << 5)); } while(0)
-#define GPIOG_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 6)); (RCC->AHB1RSTR &= ~(1 << 6)); } while(0)
-#define GPIOH_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 7)); (RCC->AHB1RSTR &= ~(1 << 7)); } while(0)
-#define GPIOI_REG_RESET()		do {(RCC->AHB1RSTR |= (1 << 8)); (RCC->AHB1RSTR &= ~(1 << 8)); } while(0)
-
-/**
- * Register Reset Macros for SPIx peripherals
- * Bit must first be set then cleared so it does not stay in reset state
- */
-#define SPI1_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 12)); (RCC->APB2RSTR &= ~(1 << 12)); } while(0)
-#define SPI2_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 14)); (RCC->APB1RSTR &= ~(1 << 14)); } while(0)
-#define SPI3_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 15)); (RCC->APB1RSTR &= ~(1 << 15)); } while(0)
-
-/**
- * Register Reset Macros for I2Cx peripherals
- * Bit must first be set then cleared so it does not stay in reset state
- */
-#define I2C1_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 21)); (RCC->APB1RSTR &= ~(1 << 21)); } while(0)
-#define I2C2_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 22)); (RCC->APB1RSTR &= ~(1 << 22)); } while(0)
-#define I2C3_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 23)); (RCC->APB1RSTR &= ~(1 << 23)); } while(0)
-
-/**
- * Register Reset Macros for USARTx peripherals
- * Bit must first be set then cleared so it does not stay in reset state
- */
-#define USART1_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 4)); (RCC->APB2RSTR &= ~(1 << 4)); } while(0)
-#define USART2_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 17)); (RCC->APB1RSTR &= ~(1 << 17)); } while(0)
-#define USART3_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 18)); (RCC->APB1RSTR &= ~(1 << 18)); } while(0)
-#define UART4_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 19)); (RCC->APB1RSTR &= ~(1 << 19)); } while(0)
-#define UART5_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 20)); (RCC->APB1RSTR &= ~(1 << 20)); } while(0)
-#define USART6_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 5)); (RCC->APB2RSTR &= ~(1 << 5)); } while(0)
-
-/**
- * Register Reset Macros for ADCx peripherals
- * Bit must first be set then cleared so it does not stay in reset state
- */
-#define ADC_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 8)); (RCC->APB2RSTR &= ~(1 << 8)); } while(0)
-
-
-/**
- * Returns port code for given GPIOx base address
- */
-#define GPIO_BASEADDRE_TO_CODE(x)  ((x == GPIOA) ? 0 :\
-									(x == GPIOB) ? 1 :\
-									(x == GPIOC) ? 2 :\
-									(x == GPIOD) ? 3 :\
-									(x == GPIOE) ? 4 :\
-									(x == GPIOF) ? 5 :\
-									(x == GPIOG) ? 6 :\
-									(x == GPIOH) ? 7 : 8)
-/**
- * Generic Macros
- */
-#define ENABLE				1
-#define DISABLE				0
-#define SET					ENABLE
-#define RESET				DISABLE
-#define GPIO_PIN_SET		SET
-#define GPIO_PIN_RESET		RESET
-#define FLAG_RESET			RESET
-#define FLAG_SET			SET
 
 /*******************************************************************************************************************
  * Bit position definitions of SPI peripheral
@@ -765,6 +613,41 @@ typedef struct
 #define ADC_CDR_DATA1			0
 #define ADC_CDR_DATA2			16
 
+/*******************************************************************************************************************
+ * Bit position definitions of DMA peripheral
+ *******************************************************************************************************************/
+
+/*
+ * Bit position definitions for DMA stream x configuration register
+ */
+#define DMA_SxCR_EN			0
+#define DMA_SxCR_DMEIE		1
+#define DMA_SxCR_TEIE		2
+#define DMA_SxCR_HTIE		3
+#define DMA_SxCR_TCIE		4
+#define DMA_SxCR_PFCTRL		5
+#define DMA_SxCR_DIR		6
+#define DMA_SxCR_CIRC		8
+#define DMA_SxCR_PINC		9
+#define DMA_SxCR_MINC		10
+#define DMA_SxCR_PSIZE		11
+#define DMA_SxCR_MSIZE		13
+#define DMA_SxCR_PINCOS		15
+#define DMA_SxCR_PL			16
+#define DMA_SxCR_DBM		18
+#define DMA_SxCR_CT			19
+#define DMA_SxCR_PBURST		21
+#define DMA_SxCR_MBURST		23
+#define DMA_SxCR_CHSEL		25
+
+/*
+ * Bit position definitions for DMA stream x FIFO control register
+ */
+#define DMA_SxFCR_FTH			0
+#define DMA_SxFCR_DMDIS			2
+#define DMA_SxFCR_FS			3
+#define DMA_SxFCR_FEIE			7
+
 /**
  * IRQ (Interrupt Request) Number of STM32F407x MCU
  * TODO: Complete the list for other peripherals
@@ -800,6 +683,24 @@ typedef struct
 
 #define IRQ_NO_ADC			18
 
+#define IRQ_NO_DMA1_STREAM0 11
+#define IRQ_NO_DMA1_STREAM1 12
+#define IRQ_NO_DMA1_STREAM2 13
+#define IRQ_NO_DMA1_STREAM3 14
+#define IRQ_NO_DMA1_STREAM4 15
+#define IRQ_NO_DMA1_STREAM5 16
+#define IRQ_NO_DMA1_STREAM6 17
+#define IRQ_NO_DMA1_STREAM7 47
+
+#define IRQ_NO_DMA2_STREAM0 56
+#define IRQ_NO_DMA2_STREAM1 57
+#define IRQ_NO_DMA2_STREAM2 58
+#define IRQ_NO_DMA2_STREAM3 59
+#define IRQ_NO_DMA2_STREAM4 60
+#define IRQ_NO_DMA2_STREAM5 68
+#define IRQ_NO_DMA2_STREAM6 69
+#define IRQ_NO_DMA2_STREAM7 70
+
 /**
  * IRQ Priority levels
  */
@@ -826,5 +727,7 @@ typedef struct
 #include "stm32f407xx_usart_driver.h"
 #include "stm32f407xx_rcc_driver.h"
 #include "stm32f407xx_adc_driver.h"
+#include "stm32f407xx_dma_driver.h"
+#include "armcortexm4_nvic_driver.h"
 
 #endif /* INC_STM32F407XX_H_ */

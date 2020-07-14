@@ -88,6 +88,19 @@ typedef struct {
 #define GPIO_PIN_PU			1			/* Enable pull up */
 #define GPIO_PIN_PD			2			/* Enable pull down */
 
+
+/**
+ * Returns port code for given GPIOx base address
+ */
+#define GPIO_BASEADDRESS_TO_CODE(x)  ((x == GPIOA) ? 0 :\
+									(x == GPIOB) ? 1 :\
+									(x == GPIOC) ? 2 :\
+									(x == GPIOD) ? 3 :\
+									(x == GPIOE) ? 4 :\
+									(x == GPIOF) ? 5 :\
+									(x == GPIOG) ? 6 :\
+									(x == GPIOH) ? 7 : 8)
+
 /******************************************************************************************************
  * 											APIs supported by this driver
  * 						For more information about the APIs, check the function definitions
