@@ -15,6 +15,8 @@ void DMA1_Init(void);
 void sendSomeData(void) ;
 
 USART_Handle_t USART2Handle;
+DMA_Handle_t DMA1Handle;
+char dataStream[] = "Hello World!\n";
 
 void USART2_GPIOInit(void) {
 	GPIO_Handle_t USARTPins;
@@ -66,12 +68,29 @@ void GPIO_ButtonInit(void) {
 }
 
 void DMA1_Init(void) {
+	//Configure DMA stream
+	DMA1Handle.DMA_Config.sourceAddress = (uint32_t *)dataStream;
+	DMA1Handle.DMA_Config.destAddress = &USART2Handle.pUSARTx->DR;
+	DMA1Handle.DMA_Config.len = sizeof(dataStream);
+	DMA1Handle.DMA_Config.transferDirection = DMA_DIRECTION_M2P;
+	DMA1Handle.DMA_Config.memDataSize = DMA_DATA_SIZE_BYTE;
+	DMA1Handle.DMA_Config.memIncrementMode = ENABLE;
+	DMA1Handle.DMA_Config.periphDataSize = DMA_DATA_SIZE_BYTE;
+	DMA1Handle.DMA_Config.periphIncrementMode = DISABLE;
+	DMA1Handle.DMA_Config.fifoMode = ENABLE;
+	DMA1Handle.DMA_Config.fifoThreshold = DMA_FIFO_THLD_FULL;
+	DMA1Handle.DMA_Config.circularMode = DISABLE;
+	DMA1Handle.DMA_Config.priority = DMA_PRIORITY_LOW;
+	DMA1Handle.DMA_Config.channel = DMA_CHANNEL_4;
 
+	//Configure DMA for M2P transfer over USART2 TX (Stream 6, Channel 4)
+	DMA1Handle.pDMAx = DMA1;
+	DMA1Handle.pDMAStream = DMA1_Stream6;
+	DMA_Init(&DMA1Handle);
 }
 
 void sendSomeData(void) {
-	char someData[] = "Hello World!\n";
-	USART_SendData(&USART2Handle, (uint8_t *)someData, sizeof(someData));
+	USART_SendData(&USART2Handle, (uint8_t *)dataStream, sizeof(dataStream));
 }
 
 void delay(void) {
@@ -82,7 +101,6 @@ int main(void) {
 	GPIO_ButtonInit();
 	USART2_GPIOInit();
 	USART2_Init();
-	DMA1_Init();
 	while(1);
 	return 0;
 }
@@ -90,6 +108,16 @@ int main(void) {
 void EXTI0_IRQHandler(void) {
 	//debounce button
 	delay();
-	sendSomeData();
+
+	//Send data over USART2
+//	sendSomeData();
+
+	//Initialize DMA stream for transfer
+	DMA1_REG_RESET();
+	DMA1_Init();
+
+	//Enable DMAT bit on USART2
+	USART2Handle.pUSARTx->CR3 |= (1 << 7);
+
 	GPIO_IRQHandling(GPIO_PIN_NO_0); //Clear pending event from EXTI line
 }

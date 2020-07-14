@@ -11,46 +11,92 @@
 #include "stm32f407xx.h"
 
 /**
- * This is a Configuration structure for a DMA controller
+ * This is a Configuration structure for a DMA Stream
  */
 typedef struct {
-	uint8_t GPIO_PinNumber;				/* possible values from @GPIO_PIN_NUMBERS */
-	uint8_t GPIO_PinMode;				/* possible values from @GPIO_PIN_MODES */
-	uint8_t GPIO_PinSpeed;				/* possible values from @GPIO_PIN_SPEED */
-	uint8_t GPIO_PinPuPdControl;		/* possible values from @GPIO_PUPD */
-	uint8_t GPIO_PinOPType;				/* possible values from @GPIO_OP_TYPE */
-	uint8_t GPIO_PinAltFunMode;
-} DMA_Config_t;
+	__vo uint32_t *sourceAddress;					/* Address of source data buffer */
+	__vo uint32_t *destAddress;						/* Address of destination data buffer */
+	uint32_t len;									/* length of data to send */
+	uint8_t transferDirection;						/* possible values from @DMA_DIRECTION */
+	uint8_t memDataSize;							/* memory data width size: possible values from @DMA_DATA_SIZE */
+	uint8_t memIncrementMode;						/* memory increment mode: ENABLE or DISABLE macros */
+	uint8_t periphDataSize;							/* peripheral data width size: possible values from @DMA_DATA_SIZE */
+	uint8_t periphIncrementMode;					/* peripheral increment mode: ENABLE or DISABLE macros */
+	uint8_t fifoMode;								/* ENABLE or DISABLE macros */
+	uint8_t fifoThreshold;							/* possible values from @DMA_FIFO_THLD */
+	uint8_t circularMode;							/* ENABLE or DISABLE macros */
+	uint8_t priority;								/* possible values from @DMA_PRIORITY */
+	uint8_t channel;								/* possible values from @DMA_CHANNEL */
+} DMA_Stream_Config_t;
 
 /**
  * This is a Handle structure for a DMA controller
  */
 typedef struct {
-	DMA_RegDef_t *pDMAx; 		/* This holds the base address of the DMA controller */
-	DMA_Config_t DMA_Config;	/* This holds DMA configuration settings */
+	DMA_RegDef_t *pDMAx; 						/* This holds the base address of the DMA controller */
+	DMA_Stream_RegDef_t *pDMAStream;			/* This holds the base address of the DMA stream */
+	DMA_Stream_Config_t DMA_Config;				/* This holds DMA configuration settings */
 } DMA_Handle_t;
 
+/**
+ * @DMA_CHANNEL
+ * DMA possible channels
+ */
+#define DMA_CHANNEL_0		0
+#define DMA_CHANNEL_1		1
+#define DMA_CHANNEL_2		2
+#define DMA_CHANNEL_3		3
+#define DMA_CHANNEL_4		4
+#define DMA_CHANNEL_5		5
+#define DMA_CHANNEL_6		6
+#define DMA_CHANNEL_7		7
 
 /**
- * @GPIO_PIN_NUMBERS
- * GPIO pin possible numbers
+ * @DMA_DIRECTION
+ * DMA possible transfer directions
  */
-#define GPIO_PIN_NO_0		0
-#define GPIO_PIN_NO_1		1
-#define GPIO_PIN_NO_2		2
-#define GPIO_PIN_NO_3		3
-#define GPIO_PIN_NO_4		4
-#define GPIO_PIN_NO_5		5
-#define GPIO_PIN_NO_6		6
-#define GPIO_PIN_NO_7		7
-#define GPIO_PIN_NO_8		8
-#define GPIO_PIN_NO_9		9
-#define GPIO_PIN_NO_10		10
-#define GPIO_PIN_NO_11		11
-#define GPIO_PIN_NO_12		12
-#define GPIO_PIN_NO_13		13
-#define GPIO_PIN_NO_14		14
-#define GPIO_PIN_NO_15		15
+#define DMA_DIRECTION_P2M		0
+#define DMA_DIRECTION_M2P		1
+#define DMA_DIRECTION_M2M		2
+
+/**
+ * @DMA_DATA_SIZE
+ * DMA possible memory and peripheral data sizes
+ */
+#define DMA_DATA_SIZE_BYTE			0
+#define DMA_DATA_SIZE_HALF_WORD		1
+#define DMA_DATA_SIZE_WORD			2
+
+/**
+ * @DMA_FIFO_THLD
+ * DMA possible fifo threshold selection
+ */
+#define DMA_FIFO_THLD_1_4_FULL			0
+#define DMA_FIFO_THLD_1_2_FULL			1
+#define DMA_FIFO_THLD_3_4_FULL			2
+#define DMA_FIFO_THLD_FULL				3
+
+/**
+ * @DMA_PRIORITY
+ * DMA priority levels
+ */
+#define DMA_PRIORITY_LOW		0
+#define DMA_PRIORITY_MEDIUM		1
+#define DMA_PRIORITY_HIGH		2
+#define DMA_PRIORITY_VERY_HIGH	3
+
+/**
+ * @DMA_CHANNEL
+ * DMA channel selection
+ */
+#define DMA_CHANNEL_0			0
+#define DMA_CHANNEL_1			1
+#define DMA_CHANNEL_2			2
+#define DMA_CHANNEL_3			3
+#define DMA_CHANNEL_4			4
+#define DMA_CHANNEL_5			5
+#define DMA_CHANNEL_6			6
+#define DMA_CHANNEL_7			7
 
 /******************************************************************************************************
  * 											APIs supported by this driver

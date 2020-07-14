@@ -54,31 +54,57 @@ void DMA_Init(DMA_Handle_t *pDMAHandle) {
 	//1. Enable the peripheral clock for the DMA
 	DMA_PeriClockControl(pDMAHandle->pDMAx, ENABLE);
 
+	//Stream configuration registers
+
 	//2. Identify the stream which is suitable for the peripheral
+	DMA_Stream_RegDef_t *pStream;
+	pStream = pDMAHandle->pDMAStream;
 
-	//3. Identify the channel number on which the peripheral sends request
+	//3. Program the source address (memory)
+	pStream->M0AR = (uint32_t) pDMAHandle->DMA_Config.sourceAddress;
 
-	//4. Program the source address
+	//4. Program the destination address (peripheral)
+	pStream->PAR = (uint32_t) pDMAHandle->DMA_Config.destAddress;
 
-	//5. Program the destination address
+	//5. Program the number of data items to send
+	pStream->NDTR = pDMAHandle->DMA_Config.len;
 
-	//6. Program the number of data items to send
+	//6. The direction of data transfer. M2P, P2M, or M2M
+	pStream->CR |= (pDMAHandle->DMA_Config.transferDirection << DMA_SxCR_DIR);
 
-	//7. The direction of data transfer. M2p, P2M, M2M
+	//7. Program the source and destination data width
+	pStream->CR &= ~(0x3 << DMA_SxCR_PSIZE);
+	pStream->CR |= (pDMAHandle->DMA_Config.periphDataSize << DMA_SxCR_PSIZE);
+	pStream->CR &= ~(0x3 << DMA_SxCR_MSIZE);
+	pStream->CR |= (pDMAHandle->DMA_Config.memDataSize << DMA_SxCR_MSIZE);
 
-	//8. Program the source and destination data width
+	//7a. Program the memory / peripheral auto increment mode
+	pStream->CR |= (pDMAHandle->DMA_Config.memIncrementMode << DMA_SxCR_MINC);
+	pStream->CR |= (pDMAHandle->DMA_Config.periphIncrementMode << DMA_SxCR_PINC);
 
-	//9. Select Direct or FIFO mode
+	//8. Select Direct or FIFO mode
+	pStream->FCR |= (pDMAHandle->DMA_Config.fifoMode << DMA_SxFCR_DMDIS);
 
-	//10. Select the FIFO threshold if enabled.
+	//9. Select the FIFO threshold if enabled.
+	if(pDMAHandle->DMA_Config.fifoMode) {
+		pStream->FCR &= ~(0x3 << DMA_SxFCR_FTH);
+		pStream->FCR |= (pDMAHandle->DMA_Config.fifoThreshold << DMA_SxFCR_FTH);
+	}
 
-	//11. Enable the circular mode if required
+	//10. Enable the circular mode if required
+	pStream->CR |= (pDMAHandle->DMA_Config.circularMode << DMA_SxCR_CIRC);
 
-	//12. Single transfer or burst transfer
+	//11. Single transfer or burst transfer
 
-	//13. Configure the stream priority
+	//12. Configure the stream priority
+	pStream->CR |= (pDMAHandle->DMA_Config.priority << DMA_SxCR_PL);
+
+	//13. Program the channel selection
+	pStream->CR &= ~(0x7 << DMA_SxCR_CHSEL);
+	pStream->CR |= (pDMAHandle->DMA_Config.channel << DMA_SxCR_CHSEL);
 
 	//14. Enable the stream
+	pStream->CR |= (1 << DMA_SxCR_EN);
 }
 
 
