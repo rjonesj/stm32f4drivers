@@ -5,6 +5,24 @@
  *      Author: rjonesj
  */
 
+/*
+ * Test sending data over USART2 peripheral using Memory to Peripheral (M2P) DMA transfer after user button is pressed.
+ * The string "Hello world!" will be sent to the VCOM port on the PC with the following configurations
+ *
+ * 1. USART2
+ * 2. Baudrate: 115200bps
+ * 3. Frame format: 1 stop bit, 8 bits, no parity
+ *
+ *
+ * USART2 pins			PC
+ * PD5  (TX)  	--->	RX
+ * PD6  (RX)    --->	TX
+ * 5V			--->	5V
+ * GND			--->	GND
+ *
+ * ALT function mode: 7
+ */
+
 #include <stdint.h>
 #include "stm32f407xx.h"
 
@@ -25,15 +43,15 @@ void USART2_GPIOInit(void) {
 	USARTPins.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
 	USARTPins.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
 	USARTPins.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
-	USARTPins.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU;
+	USARTPins.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
 	USARTPins.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
 
-	//USART2_TX (PA2, PD5)
+	//USART2_TX (PD5)
 	USARTPins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_5;
 	GPIO_Init(&USARTPins);
 
-	//USART2_RX (PA3, PD6)
-	USARTPins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
+	//USART2_RX (PD6)
+	USARTPins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_6;
 	GPIO_Init(&USARTPins);
 }
 
@@ -116,7 +134,7 @@ void EXTI0_IRQHandler(void) {
 	DMA1_REG_RESET();
 	DMA1_Init();
 
-	//Enable DMAT bit on USART2
+	//Enable DMAT bit on USART2 (Start transfer to TX buffer)
 	USART2Handle.pUSARTx->CR3 |= (1 << 7);
 
 	GPIO_IRQHandling(GPIO_PIN_NO_0); //Clear pending event from EXTI line
