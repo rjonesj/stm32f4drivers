@@ -13,6 +13,13 @@
 #include "constants.h"
 
 /**
+ * Clock macros
+ */
+#define HSE_STARTUP_TIMEOUT     ((uint16_t)0x05000)   /*!< Time out for HSE start up */
+#define HSE_VALUE    			((uint32_t)8000000)   /*!< Value of the External oscillator in Hz */
+#define HSI_VALUE    			((uint32_t)16000000)  /*!< Value of the Internal oscillator in Hz*/
+
+/**
  * Base address of Flash and SRAM memories
  */
 #define FLASH_BASEADDR 		0x08000000U
@@ -63,6 +70,7 @@
 #define DMA2_Stream5_BASE   (DMA2_BASEADDR + 0x088UL)
 #define DMA2_Stream6_BASE   (DMA2_BASEADDR + 0x0A0UL)
 #define DMA2_Stream7_BASE   (DMA2_BASEADDR + 0x0B8UL)
+#define FLASH_INTF_BASEADDR (AHB1PERIPH_BASE + 0x3C00U)
 
 /**
  * Base addresses of peripherals on APB1 bus

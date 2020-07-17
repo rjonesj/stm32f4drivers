@@ -27,5 +27,12 @@
 #define FLAG_RESET			RESET
 #define FLAG_SET			SET
 
+/**
+ * Generic Enums
+ */
+typedef enum {ERROR = 0, SUCCESS = !ERROR} ErrorStatus;
+typedef enum {FS_RESET = 0, FS_SET = !FS_RESET} FlagStatus;
+
+
 
 #endif /* INC_CONSTANTS_H_ */

@@ -137,6 +137,52 @@ void DMA2_Init(void) {
 	DMA_Init(&DMA2Handle);
 }
 
+static ErrorStatus setClocksToMaxFrequency() {
+	ErrorStatus clockStatus = ERROR;
+
+	// Resets the clock configuration to the default reset state
+	RCC_DeInit();
+
+	uint32_t *pRccCfgrReg = (uint32_t*) (RCC_BASEADDR + 0x08);
+
+	//1. Set the RCC clock configuration register MCO1 to PLL
+	*pRccCfgrReg &= ~(0x3 << RCC_CFGR_MCO1); // clear bit 21 - 22 positions
+	*pRccCfgrReg |= (0x3 << RCC_CFGR_MCO1); // set bit 21 - 22 positions to PLL
+
+	// Enable external crystal (HSE)
+	RCC_HSEConfig(RCC_HSE_ON);
+	// Wait until HSE ready to use or not
+	ErrorStatus hseStatus = RCC_WaitForHSEStartUp();
+
+	if (hseStatus == SUCCESS)
+	{
+		// Configure the PLL for 168MHz SysClk and 48MHz for USB OTG, SDIO
+		RCC_PLLConfig(RCC_PLLSource_HSE, 8, 336, 2, 7);
+		// Enable PLL
+		RCC_PLLCmd(ENABLE);
+		// Wait until main PLL clock ready
+		while (RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == FS_RESET);
+
+		// Set flash latency
+		FLASH_SetLatency(FLASH_Latency_5);
+
+		// AHB 168MHz
+		RCC_HCLKConfig(RCC_SYSCLK_Div1);
+		// APB1 42MHz
+		RCC_PCLK1Config(RCC_HCLK_Div4);
+		// APB2 84 MHz
+		RCC_PCLK2Config(RCC_HCLK_Div2);
+
+		// Set SysClk using PLL
+		RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
+
+		//Clocks configured successfully
+		clockStatus = SUCCESS;
+	}
+
+	return clockStatus;
+}
+
 /**
  * ILI9341 Driver functions
  */
@@ -446,10 +492,17 @@ void ILI9341_Fill_Screen(unsigned int color)
 }
 
 /**
- * End Functions
+ * End ILI9341 Functions
  */
 
 int main(void) {
+	//Set System and Bus Clocks to max frequency
+	ErrorStatus status = setClocksToMaxFrequency();
+	if(status == ERROR) {
+        // Do something to indicate error clock configuration
+		while(1);
+	}
+
 	//Initialize LCD pins
 	LCD_GPIOInit();
 
@@ -478,8 +531,8 @@ int main(void) {
 
 	delay();
 
-	//Perform 20 alternating color screen refreshes
-	for(int i = 0; i < 10; i++) {
+	//Perform 60 alternating color screen refreshes
+	for(int i = 0; i < 30; i++) {
 		ILI9341_Fill_Screen(BLUE);
 		ILI9341_Fill_Screen(RED);
 	}
