@@ -41,14 +41,15 @@
 #define LCD_DC		GPIO_PIN_NO_1
 #define LCD_CS		GPIO_PIN_NO_2
 #define LCD_RESET	GPIO_PIN_NO_0
+#define TEST_PIN	GPIO_PIN_NO_3
 
 #define BLUE        	0x001F
-#define RED   			0xE0
+#define RED         	0xF800
 
 static unsigned int X_SIZE = 240;
 static unsigned int Y_SIZE = 320;
 uint16_t color = 0x001F;
-uint16_t len = 0xFFFF;
+uint16_t numOfItemsToTransfer = 0xFFFF;
 
 GPIO_Handle_t LCDPins;
 SPI_Handle_t SPI1Handle;
@@ -71,6 +72,10 @@ void LCD_GPIOInit(void) {
 
 	//RESET
 	LCDPins.GPIO_PinConfig.GPIO_PinNumber = LCD_RESET;
+	GPIO_Init(&LCDPins);
+
+	//TEST
+	LCDPins.GPIO_PinConfig.GPIO_PinNumber = TEST_PIN;
 	GPIO_Init(&LCDPins);
 }
 
@@ -111,22 +116,24 @@ void SPI1_Init(void) {
 	SPI1Handle.SPI_Config.SPI_CPHA = SPI_CPHA_FIRST;
 	SPI1Handle.SPI_Config.SPI_SSM = SPI_SSM_DS;
 
-
 	SPI_Init(&SPI1Handle);
+
+	//Enable Tx Buffer DMA requests
+	SPI1Handle.pSPIx->CR2 |= (1 << SPI_CR2_TXDMAEN);
 }
 
 void DMA2_Init(void) {
 	//Configure DMA stream
 	DMA2Handle.DMA_Config.sourceAddress = (uint32_t *)&color;
 	DMA2Handle.DMA_Config.destAddress = (uint32_t *)&SPI1Handle.pSPIx->DR;
-	DMA2Handle.DMA_Config.len = len;
+	DMA2Handle.DMA_Config.len = numOfItemsToTransfer;
 	DMA2Handle.DMA_Config.transferDirection = DMA_DIRECTION_M2P;
-	DMA2Handle.DMA_Config.memDataSize = DMA_DATA_SIZE_BYTE;
+	DMA2Handle.DMA_Config.memDataSize = DMA_DATA_SIZE_HALF_WORD;
 	DMA2Handle.DMA_Config.memIncrementMode = DISABLE;
 	DMA2Handle.DMA_Config.periphDataSize = DMA_DATA_SIZE_BYTE;
 	DMA2Handle.DMA_Config.periphIncrementMode = DISABLE;
-	DMA2Handle.DMA_Config.fifoMode = DISABLE;
-//	DMA2Handle.DMA_Config.fifoThreshold = DMA_FIFO_THLD_FULL;
+	DMA2Handle.DMA_Config.fifoMode = ENABLE;
+	DMA2Handle.DMA_Config.fifoThreshold = DMA_FIFO_THLD_1_4_FULL;
 	DMA2Handle.DMA_Config.circularMode = DISABLE;
 	DMA2Handle.DMA_Config.priority = DMA_PRIORITY_LOW;
 	DMA2Handle.DMA_Config.channel = DMA_CHANNEL_3;
@@ -406,82 +413,34 @@ void ILI9341_Set_Address(unsigned int x1, unsigned int y1, unsigned int x2, unsi
 }
 
 void ILI9341_Send_Burst(unsigned short ucolor, unsigned long len) {
-	color = ucolor;
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_RESET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_RESET);
 	ILI9341_SPI_Send(0x2C);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_SET);
 
-	//Slow SPI single byte method
-//	for(int i = 0; i < len*2; i++) {
-//		ILI9341_SPI_Send(ucolor);
+//	//Slow SPI single byte method
+//	unsigned char high_bit = ucolor >> 8, low_bit = ucolor;
+//	for(int i = 0; i < len; i++) {
+//		ILI9341_SPI_Send(high_bit);
+//		ILI9341_SPI_Send(low_bit);
 //	}
 
 	//Faster DMA method
-	//Start DMA transfer
-	DMA2_REG_RESET();
-	DMA2_Init();
-	SPI1Handle.pSPIx->CR2 |= (1 << SPI_CR2_TXDMAEN);
-	while(DMA2Handle.pDMAStream->NDTR);
-	DMA2_REG_RESET();
-	DMA2_Init();
-	SPI1Handle.pSPIx->CR2 |= (1 << SPI_CR2_TXDMAEN);
-	while(DMA2Handle.pDMAStream->NDTR);
-	len = 22530;
-	DMA2_REG_RESET();
-	DMA2_Init();
-	SPI1Handle.pSPIx->CR2 |= (1 << SPI_CR2_TXDMAEN);
-	while(DMA2Handle.pDMAStream->NDTR);
+	//Flip the bytes for the little-endian ARM core.
+	ucolor = (((ucolor & 0x00FF) << 8) | ((ucolor & 0xFF00) >> 8));
+	color = ucolor;
+	numOfItemsToTransfer = 0xFFFF-1;
+	len = len*2;
+	while(len > 0) {
+		DMA2_REG_RESET();
+		DMA2_Init();
+		while(DMA2Handle.pDMAStream->NDTR);
+		len -= numOfItemsToTransfer;
+		if(len < numOfItemsToTransfer) {
+			numOfItemsToTransfer = len;
+		}
+	}
 
-	//Original Method
-//	unsigned short blocks;
-//	unsigned char i, high_bit = ucolor >> 8, low_bit = ucolor;
-//	len--;
-//	ILI9341_SPI_Send(high_bit);
-//	ILI9341_SPI_Send(low_bit);
-//	blocks = (unsigned short) (len / 64); //64 pixels/block
-//	if (high_bit == low_bit)
-//	{
-//		while (blocks--) {
-//			i = 16;
-//			do {
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(low_bit);
-//			} while (--i);
-//		}
-//		//Fill any remaining pixels(1 to 64)
-//		for (i = (unsigned char) len & 63; i--;) {
-//			ILI9341_SPI_Send(low_bit);
-//			ILI9341_SPI_Send(low_bit);
-//		}
-//	}
-//	else
-//	{
-//		while (blocks--) {
-//			i = 16;
-//			do {
-//				ILI9341_SPI_Send(high_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(high_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(high_bit);
-//				ILI9341_SPI_Send(low_bit);
-//				ILI9341_SPI_Send(high_bit);
-//				ILI9341_SPI_Send(low_bit);
-//			} while (--i);
-//		}
-//		//Fill any remaining pixels(1 to 64)
-//		for (i = (unsigned char) len & 63; i--;) {
-//			ILI9341_SPI_Send(high_bit);
-//			ILI9341_SPI_Send(low_bit);
-//		}
-//	}
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_SET);
 }
 
@@ -532,10 +491,14 @@ int main(void) {
 	delay();
 
 	//Perform 60 alternating color screen refreshes
+	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
+	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
 	for(int i = 0; i < 30; i++) {
 		ILI9341_Fill_Screen(BLUE);
 		ILI9341_Fill_Screen(RED);
 	}
+	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
+	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
 
 	//Disable the SPI1 peripheral
 	SPI_PeripheralControl(SPI1, DISABLE);
