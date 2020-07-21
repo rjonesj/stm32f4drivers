@@ -115,8 +115,10 @@ void DMA_Init(DMA_Handle_t *pDMAHandle);
 void DMA_DeInit(DMA_RegDef_t *pDMAx);
 
 /**
- * Data read and write
+ * Other peripheral controls
  */
+void enable_dma_stream(DMA_Handle_t *pDMAHandle);
+void dma_interrupt_configuration(DMA_Handle_t *pDMAHandle);
 
 /**
  * IRQ Configuration and ISR handling

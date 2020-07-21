@@ -626,6 +626,102 @@ typedef struct
  *******************************************************************************************************************/
 
 /*
+ * Bit position definitions for DMA low interrupt status register
+ */
+#define DMA_LISR_FEIF0			0
+#define DMA_LISR_DMEIF0			2
+#define DMA_LISR_TEIF0			3
+#define DMA_LISR_HTIF0			4
+#define DMA_LISR_TCIF0			5
+#define DMA_LISR_FEIF1			6
+#define DMA_LISR_DMEIF1			8
+#define DMA_LISR_TEIF1			9
+#define DMA_LISR_HTIF1			10
+#define DMA_LISR_TCIF1			11
+#define DMA_LISR_FEIF2			16
+#define DMA_LISR_DMEIF2			18
+#define DMA_LISR_TEIF2			19
+#define DMA_LISR_HTIF2			20
+#define DMA_LISR_TCIF2			21
+#define DMA_LISR_FEIF3			22
+#define DMA_LISR_DMEIF3			24
+#define DMA_LISR_TEIF3			25
+#define DMA_LISR_HTIF3			26
+#define DMA_LISR_TCIF3			27
+
+/*
+ * Bit position definitions for DMA high interrupt status register
+ */
+#define DMA_HISR_FEIF4			0
+#define DMA_HISR_DMEIF4			2
+#define DMA_HISR_TEIF4			3
+#define DMA_HISR_HTIF4			4
+#define DMA_HISR_TCIF4			5
+#define DMA_HISR_FEIF5			6
+#define DMA_HISR_DMEIF5			8
+#define DMA_HISR_TEIF5			9
+#define DMA_HISR_HTIF5			10
+#define DMA_HISR_TCIF5			11
+#define DMA_HISR_FEIF6			16
+#define DMA_HISR_DMEIF6			18
+#define DMA_HISR_TEIF6			19
+#define DMA_HISR_HTIF6			20
+#define DMA_HISR_TCIF6			21
+#define DMA_HISR_FEIF7			22
+#define DMA_HISR_DMEIF7			24
+#define DMA_HISR_TEIF7			25
+#define DMA_HISR_HTIF7			26
+#define DMA_HISR_TCIF7			27
+
+/*
+ * Bit position definitions for DMA low interrupt flag clear register
+ */
+#define DMA_LIFCR_CFEIF0		0
+#define DMA_LIFCR_CDMEIF0		2
+#define DMA_LIFCR_CTEIF0		3
+#define DMA_LIFCR_CHTIF0		4
+#define DMA_LIFCR_CTCIF0		5
+#define DMA_LIFCR_CFEIF1		6
+#define DMA_LIFCR_CDMEIF1		8
+#define DMA_LIFCR_CTEIF1		9
+#define DMA_LIFCR_CHTIF1		10
+#define DMA_LIFCR_CTCIF1		11
+#define DMA_LIFCR_CFEIF2		16
+#define DMA_LIFCR_CDMEIF2		18
+#define DMA_LIFCR_CTEIF2		19
+#define DMA_LIFCR_CHTIF2		20
+#define DMA_LIFCR_CTCIF2		21
+#define DMA_LIFCR_CFEIF3		22
+#define DMA_LIFCR_CDMEIF3		24
+#define DMA_LIFCR_CTEIF3		25
+#define DMA_LIFCR_CHTIF3		26
+#define DMA_LIFCR_CTCIF3		27
+
+/*
+ * Bit position definitions for DMA high interrupt flag clear register
+ */
+#define DMA_HIFCR_CFEIF4		0
+#define DMA_HIFCR_CDMEIF4		2
+#define DMA_HIFCR_CTEIF4		3
+#define DMA_HIFCR_CHTIF4		4
+#define DMA_HIFCR_CTCIF4		5
+#define DMA_HIFCR_CFEIF5		6
+#define DMA_HIFCR_CDMEIF5		8
+#define DMA_HIFCR_CTEIF5		9
+#define DMA_HIFCR_CHTIF5		10
+#define DMA_HIFCR_CTCIF5		11
+#define DMA_HIFCR_CFEIF6		16
+#define DMA_HIFCR_CDMEIF6		18
+#define DMA_HIFCR_CTEIF6		19
+#define DMA_HIFCR_CHTIF6		20
+#define DMA_HIFCR_CTCIF6		21
+#define DMA_HIFCR_CFEIF7		22
+#define DMA_HIFCR_CDMEIF7		24
+#define DMA_HIFCR_CTEIF7		25
+#define DMA_HIFCR_CHTIF7		26
+#define DMA_HIFCR_CTCIF7		27
+
+/*
  * Bit position definitions for DMA stream x configuration register
  */
 #define DMA_SxCR_EN			0

@@ -102,9 +102,51 @@ void DMA_Init(DMA_Handle_t *pDMAHandle) {
 	//13. Program the channel selection
 	pStream->CR &= ~(0x7 << DMA_SxCR_CHSEL);
 	pStream->CR |= (pDMAHandle->DMA_Config.channel << DMA_SxCR_CHSEL);
+}
 
-	//14. Enable the stream
-	pStream->CR |= (1 << DMA_SxCR_EN);
+/**
+ * @fn			- enable_dma_stream
+ * @brief		- This function enables the configured DMA stream
+ *
+ * @param[in]	- Address to DMA_Handle_t struct to be configured
+ *
+ * @return		- none
+ * @note		- none
+ */
+void enable_dma_stream(DMA_Handle_t *pDMAHandle) {
+	//Enable the stream
+	pDMAHandle->pDMAStream->CR |= (1 << DMA_SxCR_EN);
+}
+
+/**
+ * @fn			- dma_interrupt_configuration
+ * @brief		- This function enables the global interrupts for all DMA events
+ *
+ * @param[in]	- Address to DMA_Handle_t struct to be configured
+ *
+ * @return		- none
+ * @note		- none
+ */
+void dma_interrupt_configuration(DMA_Handle_t *pDMAHandle) {
+	DMA_Stream_RegDef_t *pStream = pDMAHandle->pDMAStream;
+
+	//1. Half-transfer IE (HTIE)
+	pStream->CR  |= (1 << DMA_SxCR_HTIE);
+
+	//2. Transfer complete IE (TCIE)
+	pStream->CR |= (1 << DMA_SxCR_TCIE);
+
+	//3. Transfer error IE (TEIE)
+	pStream->CR |= (1 << DMA_SxCR_TEIE);
+
+	//4. FIFO overrun/underrun IE (FEIE)
+	pStream->FCR |= (1 << DMA_SxFCR_FEIE);
+
+	//5. Direct mode error (DMEIE)
+	pStream->CR |= (1 << DMA_SxCR_DMEIE);
+
+	//6. Enable the IRQ for DMA1 stream6 global interrupt in NVIC
+	NVIC_IRQConfig(IRQ_NO_DMA1_STREAM6, ENABLE);
 }
 
 

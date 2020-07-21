@@ -6,10 +6,10 @@
  */
 
 /*
- * Program turns on a 320X240 pixel TFT LCD screen using ILI9341 driver and tests full screen refreshes using alternate colors.
+ * Program turns on a 320X240 pixel TFT LCD screen using ILI9341 driver with 4 wire SPI and tests full screen refreshes using alternate colors.
  * This a sample application to test different methods and clock speeds to achieve fast refresh rates.
  *
- * SPI1 pins	(8 MHz)
+ * SPI1 pins	(42 MHz)
  * PA6 --> MISO
  * PA7 --> MOSI
  * PA5 --> SCLK
