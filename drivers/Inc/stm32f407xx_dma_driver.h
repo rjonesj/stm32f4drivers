@@ -133,6 +133,7 @@ void enable_dma_stream(DMA_Handle_t *pDMAHandle);
 void dma_interrupt_configuration(DMA_Handle_t *pDMAHandle);
 uint8_t getInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent);
 void clearInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent);
+void clearAllInterrupts(DMA_Handle_t *pDMAHandle);
 
 /**
  * IRQ Configuration and ISR handling

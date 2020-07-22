@@ -273,6 +273,21 @@ void clearInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent) {
 	*statusRegisterAddress |= (1 << bitPosition);
 }
 
+/*********************************************************************
+ * @fn      		  - clearAllInterrupts
+ * @brief             - Function clears the interrupt flag status for all bits in the LISR and HISR registers
+ *
+ * @param[in]         - Address to DMA Handle struct
+ *
+ * @return            - none
+ * @Note              - none
+
+ */
+void clearAllInterrupts(DMA_Handle_t *pDMAHandle) {
+	pDMAHandle->pDMAx->LIFCR |= 0xF7D0F7D;
+	pDMAHandle->pDMAx->HIFCR |= 0xF7D0F7D;
+}
+
 /**
  * IRQ Configuration and ISR handling
  */

@@ -36,24 +36,21 @@
  */
 
 # include "stm32f407xx.h"
+# include "ili9341_driver.h"
 # include <string.h>
 
 #define LCD_DC		GPIO_PIN_NO_1
 #define LCD_CS		GPIO_PIN_NO_2
-#define LCD_RESET	GPIO_PIN_NO_0
-#define TEST_PIN	GPIO_PIN_NO_3
-
-#define BLUE        	0x001F
-#define RED         	0xF800
-
-static unsigned int X_SIZE = 240;
-static unsigned int Y_SIZE = 320;
-uint16_t color = 0x001F;
-uint16_t numOfItemsToTransfer = 0xFFFF;
+#define LCD_RESET 	GPIO_PIN_NO_0
+#define TEST_PIN 	GPIO_PIN_NO_3
+#define X_PIXELS	240
+#define Y_PIXELS	320
+#define DMA_MAX_NDTR	0xFFFF-1
 
 GPIO_Handle_t LCDPins;
 SPI_Handle_t SPI1Handle;
 DMA_Handle_t DMA2Handle;
+ILI9341_Handle_t ILIHandle;
 
 void LCD_GPIOInit(void) {
 	LCDPins.pGPIOx = GPIOA;
@@ -124,16 +121,14 @@ void SPI1_Init(void) {
 
 void DMA2_Init(void) {
 	//Configure DMA stream
-	DMA2Handle.DMA_Config.sourceAddress = (uint32_t *)&color;
 	DMA2Handle.DMA_Config.destAddress = (uint32_t *)&SPI1Handle.pSPIx->DR;
-	DMA2Handle.DMA_Config.len = numOfItemsToTransfer;
 	DMA2Handle.DMA_Config.transferDirection = DMA_DIRECTION_M2P;
 	DMA2Handle.DMA_Config.memDataSize = DMA_DATA_SIZE_HALF_WORD;
 	DMA2Handle.DMA_Config.memIncrementMode = DISABLE;
 	DMA2Handle.DMA_Config.periphDataSize = DMA_DATA_SIZE_BYTE;
 	DMA2Handle.DMA_Config.periphIncrementMode = DISABLE;
 	DMA2Handle.DMA_Config.fifoMode = ENABLE;
-	DMA2Handle.DMA_Config.fifoThreshold = DMA_FIFO_THLD_1_4_FULL;
+	DMA2Handle.DMA_Config.fifoThreshold = DMA_FIFO_THLD_FULL;
 	DMA2Handle.DMA_Config.circularMode = DISABLE;
 	DMA2Handle.DMA_Config.priority = DMA_PRIORITY_LOW;
 	DMA2Handle.DMA_Config.channel = DMA_CHANNEL_3;
@@ -145,269 +140,20 @@ void DMA2_Init(void) {
 	DMA_Init(&DMA2Handle);
 }
 
-/**
- * ILI9341 Driver functions
- */
+void ILI9341_Handle_Init(void) {
+	ILIHandle.pLCDPins = &LCDPins;
+	ILIHandle.pSPIHandle = &SPI1Handle;
+	ILIHandle.pDMAHandle = &DMA2Handle;
+	ILIHandle.ILI9341_Config.lcdCSPin = LCD_CS;
+	ILIHandle.ILI9341_Config.lcdDCPin = LCD_DC;
+	ILIHandle.ILI9341_Config.lcdResetPin = LCD_RESET;
+	ILIHandle.ILI9341_Config.xPixels = X_PIXELS;
+	ILIHandle.ILI9341_Config.yPixels = Y_PIXELS;
+	ILIHandle.ILI9341_Config.dmaMaxTransfer = DMA_MAX_NDTR;
+	ILIHandle.ILI9341_Config.intfMode = ILI9341_MODE_4WIRE_8BIT_SERIAL;
 
-void delay(void) {
-	for(int i = 0; i < 500000; i++);
+	ILI9341_Init(&ILIHandle);
 }
-
-static void Before_Sending_Data() {
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_SET);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_RESET);
-}
-
-static void Before_Sending_Command() {
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_RESET);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_RESET);
-}
-
-void ILI9341_SPI_Send(unsigned char data)
-{
-	SPI_SendData(SPI1Handle.pSPIx, &data, 1);
-}
-
-static void ILI9341_Send_Command(unsigned char command) {
-	Before_Sending_Command();
-	ILI9341_SPI_Send(command);
-}
-
-static void ILI9341_Send_Data(unsigned char data) {
-	Before_Sending_Data();
-	ILI9341_SPI_Send(data);
-}
-
-void ILI9341_SPI_Send_32(unsigned char command, unsigned long data) {
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_RESET);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_RESET);
-	ILI9341_SPI_Send(command);
-
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_SET);
-	ILI9341_SPI_Send(data >> 24);
-	ILI9341_SPI_Send(data >> 16);
-	ILI9341_SPI_Send(data >> 8);
-	ILI9341_SPI_Send(data);
-
-}
-
-void ILI9341_Reset() {
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_RESET, GPIO_PIN_RESET);
-	delay();
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_RESET, GPIO_PIN_SET);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_RESET);
-	delay();
-	ILI9341_Send_Command(0x01);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_SET);
-}
-
-void ILI9341_Init() {
-	/* Reset The Screen */
-	ILI9341_Reset();
-	ILI9341_Send_Command(0x01);
-
-	/* Power Control A */
-	ILI9341_Send_Command(0xCB);
-	ILI9341_Send_Data(0x39);
-	ILI9341_Send_Data(0x2C);
-	ILI9341_Send_Data(0x00);
-	ILI9341_Send_Data(0x34);
-	ILI9341_Send_Data(0x02);
-
-	/* Power Control B */
-	ILI9341_Send_Command(0xCF);
-	ILI9341_Send_Data(0x00);
-	ILI9341_Send_Data(0xC1);
-	ILI9341_Send_Data(0x30);
-
-	/* Driver timing control A */
-	ILI9341_Send_Command(0xE8);
-	ILI9341_Send_Data(0x85);
-	ILI9341_Send_Data(0x00);
-	ILI9341_Send_Data(0x78);
-
-	/* Driver timing control B */
-	ILI9341_Send_Command(0xEA);
-	ILI9341_Send_Data(0x00);
-	ILI9341_Send_Data(0x00);
-
-	/* Power on Sequence control */
-	ILI9341_Send_Command(0xED);
-	ILI9341_Send_Data(0x64);
-	ILI9341_Send_Data(0x03);
-	ILI9341_Send_Data(0x12);
-	ILI9341_Send_Data(0x81);
-
-	/* Pump ratio control */
-	ILI9341_Send_Command(0xF7);
-	ILI9341_Send_Data(0x20);
-
-	/* Power Control 1 */
-	ILI9341_Send_Command(0xC0);
-	ILI9341_Send_Data(0x10);
-
-	/* Power Control 2 */
-	ILI9341_Send_Command(0xC1);
-	ILI9341_Send_Data(0x10);
-
-	/* VCOM Control 1 */
-	ILI9341_Send_Command(0xC5);
-	ILI9341_Send_Data(0x3E);
-	ILI9341_Send_Data(0x28);
-
-	/* VCOM Control 2 */
-	ILI9341_Send_Command(0xC7);
-	ILI9341_Send_Data(0x86);
-
-	/* VCOM Control 2 */
-	ILI9341_Send_Command(0x36);
-	ILI9341_Send_Data(0x48);
-
-	/* Pixel Format Set */
-	ILI9341_Send_Command(0x3A);
-	ILI9341_Send_Data(0x55);    //16bit
-
-	ILI9341_Send_Command(0xB1);
-	ILI9341_Send_Data(0x00);
-	ILI9341_Send_Data(0x18);
-
-	/* Display Function Control */
-	ILI9341_Send_Command(0xB6);
-	ILI9341_Send_Data(0x08);
-	ILI9341_Send_Data(0x82);
-	ILI9341_Send_Data(0x27);
-
-	/* 3GAMMA FUNCTION DISABLE */
-	ILI9341_Send_Command(0xF2);
-	ILI9341_Send_Data(0x00);
-
-	/* GAMMA CURVE SELECTED */
-	ILI9341_Send_Command(0x26); //Gamma set
-	ILI9341_Send_Data(0x01); 	//Gamma Curve (G2.2)
-
-	//Positive Gamma  Correction
-	ILI9341_Send_Command(0xE0);
-	ILI9341_Send_Data(0x0F);
-	ILI9341_Send_Data(0x31);
-	ILI9341_Send_Data(0x2B);
-	ILI9341_Send_Data(0x0C);
-	ILI9341_Send_Data(0x0E);
-	ILI9341_Send_Data(0x08);
-	ILI9341_Send_Data(0x4E);
-	ILI9341_Send_Data(0xF1);
-	ILI9341_Send_Data(0x37);
-	ILI9341_Send_Data(0x07);
-	ILI9341_Send_Data(0x10);
-	ILI9341_Send_Data(0x03);
-	ILI9341_Send_Data(0x0E);
-	ILI9341_Send_Data(0x09);
-	ILI9341_Send_Data(0x00);
-
-	//Negative Gamma  Correction
-	ILI9341_Send_Command(0xE1);
-	ILI9341_Send_Data(0x00);
-	ILI9341_Send_Data(0x0E);
-	ILI9341_Send_Data(0x14);
-	ILI9341_Send_Data(0x03);
-	ILI9341_Send_Data(0x11);
-	ILI9341_Send_Data(0x07);
-	ILI9341_Send_Data(0x31);
-	ILI9341_Send_Data(0xC1);
-	ILI9341_Send_Data(0x48);
-	ILI9341_Send_Data(0x08);
-	ILI9341_Send_Data(0x0F);
-	ILI9341_Send_Data(0x0C);
-	ILI9341_Send_Data(0x31);
-	ILI9341_Send_Data(0x36);
-	ILI9341_Send_Data(0x0F);
-
-	//EXIT SLEEP
-	ILI9341_Send_Command(0x11);
-
-	//TURN ON DISPLAY
-	ILI9341_Send_Command(0x29);
-	ILI9341_Send_Data(0x2C);
-}
-
-void ILI9341_Set_Rotation(unsigned char rotation) {
-	ILI9341_Send_Command(0x36);
-	switch (rotation) {
-	case 0:
-		ILI9341_Send_Data(0x48);
-		X_SIZE = 240;
-		Y_SIZE = 320;
-		break;
-	case 1:
-		ILI9341_Send_Data(0x28);
-		X_SIZE = 320;
-		Y_SIZE = 240;
-		break;
-	case 2:
-		ILI9341_Send_Data(0x88);
-		X_SIZE = 240;
-		Y_SIZE = 320;
-		break;
-	case 3:
-		ILI9341_Send_Data(0xE8);
-		X_SIZE = 320;
-		Y_SIZE = 240;
-		break;
-	}
-}
-
-void ILI9341_Set_Address(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) {
-	unsigned long t;
-	t = x1;
-	t <<= 16;
-	t |= x2;
-	ILI9341_SPI_Send_32(0x2A, t); //Column Address Set
-	t = y1;
-	t <<= 16;
-	t |= y2;
-	ILI9341_SPI_Send_32(0x2B, t); //Page Address Set
-}
-
-void ILI9341_Send_Burst(unsigned short ucolor, unsigned long len) {
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_RESET);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_RESET);
-	ILI9341_SPI_Send(0x2C);
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_DC, GPIO_PIN_SET);
-
-//	//Slow SPI single byte method
-//	unsigned char high_bit = ucolor >> 8, low_bit = ucolor;
-//	for(int i = 0; i < len; i++) {
-//		ILI9341_SPI_Send(high_bit);
-//		ILI9341_SPI_Send(low_bit);
-//	}
-
-	//Faster DMA method
-	//Flip the bytes for the little-endian ARM core.
-	ucolor = (((ucolor & 0x00FF) << 8) | ((ucolor & 0xFF00) >> 8));
-	color = ucolor;
-	numOfItemsToTransfer = 0xFFFF-1;
-	len = len*2;
-	while(len > 0) {
-		DMA2_REG_RESET();
-		DMA2_Init();
-		while(DMA2Handle.pDMAStream->NDTR);
-		len -= numOfItemsToTransfer;
-		if(len < numOfItemsToTransfer) {
-			numOfItemsToTransfer = len;
-		}
-	}
-
-	GPIO_WriteToOutputPin(LCDPins.pGPIOx, LCD_CS, GPIO_PIN_SET);
-}
-
-void ILI9341_Fill_Screen(unsigned int color)
-{
-	ILI9341_Set_Address(0, 0, X_SIZE-1, Y_SIZE-1);
-	ILI9341_Send_Burst(color, (long)X_SIZE * (long)Y_SIZE);
-}
-
-/**
- * End ILI9341 Functions
- */
 
 int main(void) {
 	//Set System and Bus Clocks to max frequency
@@ -437,20 +183,21 @@ int main(void) {
 	//Enable the SPI1 peripheral
 	SPI_PeripheralControl(SPI1, ENABLE);
 
-	//Turn on the LCD
-	ILI9341_Init();
+	//Configure DMA Stream
+	DMA2_Init();
+
+	//Initialize ILI9341 driver
+	ILI9341_Handle_Init();
 
 	/* Set rotation to landscape */
 	ILI9341_Set_Rotation(3);
-
-	delay();
 
 	//Perform 60 alternating color screen refreshes
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
 	for(int i = 0; i < 30; i++) {
-		ILI9341_Fill_Screen(BLUE);
-		ILI9341_Fill_Screen(RED);
+		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE, ENABLE);
+		ILI9341_Fill_Screen(ILI9341_COLOR_RED, ENABLE);
 	}
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
