@@ -9,7 +9,7 @@
 
 GPIO_Handle_t LCDPins;
 SPI_Handle_t SPIHandle;
-DMA_Handle_t DMA2Handle;
+DMA_Handle_t DMAHandle;
 uint8_t lcdReset, lcdCS, lcdDC;
 uint16_t dmaMaxItemTransfer, xLen, yLen, oxLen, oyLen;
 
@@ -34,7 +34,7 @@ static void delay(void) {
 void ILI9341_Init(ILI9341_Handle_t *pHandle) {
 	LCDPins = *pHandle->pLCDPins;
 	SPIHandle = *pHandle->pSPIHandle;
-	DMA2Handle = *pHandle->pDMAHandle;
+	DMAHandle = *pHandle->pDMAHandle;
 
 	lcdReset = pHandle->ILI9341_Config.lcdResetPin;
 	lcdCS = pHandle->ILI9341_Config.lcdCSPin;
@@ -333,26 +333,26 @@ void ILI9341_Send_Burst_DMA(unsigned short ucolor, unsigned long len) {
 	ILI9341_DataSelect(ENABLE);
 	//Flip the bytes for the little-endian ARM core.
 	ucolor = (((ucolor & 0x00FF) << 8) | ((ucolor & 0xFF00) >> 8));
-	DMA2Handle.DMA_Config.sourceAddress = (uint32_t *)&ucolor;
+	DMAHandle.DMA_Config.sourceAddress = (uint32_t *)&ucolor;
 	//Program color source address
-	DMA2Handle.pDMAStream->M0AR = (uint32_t) DMA2Handle.DMA_Config.sourceAddress;
+	DMAHandle.pDMAStream->M0AR = (uint32_t) DMAHandle.DMA_Config.sourceAddress;
 
 	len = len*2;
 	while(len > 0) {
 		//Set Transfer length
 		if(len < dmaMaxItemTransfer) {
 			//Send transfer length if len is less than max
-			DMA2Handle.pDMAStream->NDTR = len;
+			DMAHandle.pDMAStream->NDTR = len;
 		} else {
 			//Else, Send max transfer length
-			DMA2Handle.pDMAStream->NDTR = dmaMaxItemTransfer;
+			DMAHandle.pDMAStream->NDTR = dmaMaxItemTransfer;
 		}
 		//Clear any event flags
-		clearAllInterrupts(&DMA2Handle);
+		clearAllInterrupts(&DMAHandle);
 		//Enable DMA stream
-		enable_dma_stream(&DMA2Handle);
+		enable_dma_stream(&DMAHandle);
 		//Wait for transfer to complete
-		while(DMA2Handle.pDMAStream->NDTR);
+		while(DMAHandle.pDMAStream->NDTR);
 		//Decrement TX length
 		if( len >= dmaMaxItemTransfer) {
 			len -= dmaMaxItemTransfer;
