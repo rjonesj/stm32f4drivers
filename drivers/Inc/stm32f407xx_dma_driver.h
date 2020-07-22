@@ -27,6 +27,7 @@ typedef struct {
 	uint8_t circularMode;							/* ENABLE or DISABLE macros */
 	uint8_t priority;								/* possible values from @DMA_PRIORITY */
 	uint8_t channel;								/* possible values from @DMA_CHANNEL */
+	uint8_t stream;									/* possible values from @DMA_STREAM */
 } DMA_Stream_Config_t;
 
 /**
@@ -37,19 +38,6 @@ typedef struct {
 	DMA_Stream_RegDef_t *pDMAStream;			/* This holds the base address of the DMA stream */
 	DMA_Stream_Config_t DMA_Config;				/* This holds DMA configuration settings */
 } DMA_Handle_t;
-
-/**
- * @DMA_CHANNEL
- * DMA possible channels
- */
-#define DMA_CHANNEL_0		0
-#define DMA_CHANNEL_1		1
-#define DMA_CHANNEL_2		2
-#define DMA_CHANNEL_3		3
-#define DMA_CHANNEL_4		4
-#define DMA_CHANNEL_5		5
-#define DMA_CHANNEL_6		6
-#define DMA_CHANNEL_7		7
 
 /**
  * @DMA_DIRECTION
@@ -98,6 +86,30 @@ typedef struct {
 #define DMA_CHANNEL_6			6
 #define DMA_CHANNEL_7			7
 
+/**
+ * @DMA_STREAM
+ * DMA stream selection
+ */
+#define DMA_STREAM_0			0
+#define DMA_STREAM_1			1
+#define DMA_STREAM_2			2
+#define DMA_STREAM_3			3
+#define DMA_STREAM_4			4
+#define DMA_STREAM_5			5
+#define DMA_STREAM_6			6
+#define DMA_STREAM_7			7
+
+/**
+ * @DMA_EVENT
+ * DMA interrupt event
+ */
+#define DMA_EVENT_TC			0
+#define DMA_EVENT_HT			1
+#define DMA_EVENT_TE			2
+#define DMA_EVENT_DME			3
+#define DMA_EVENT_FE			4
+
+
 /******************************************************************************************************
  * 											APIs supported by this driver
  * 						For more information about the APIs, check the function definitions
@@ -119,11 +131,22 @@ void DMA_DeInit(DMA_RegDef_t *pDMAx);
  */
 void enable_dma_stream(DMA_Handle_t *pDMAHandle);
 void dma_interrupt_configuration(DMA_Handle_t *pDMAHandle);
+uint8_t getInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent);
+void clearInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent);
 
 /**
  * IRQ Configuration and ISR handling
  */
-void DMA_IRQHandling(uint8_t pinNumber);
+void DMA_IRQHandling(DMA_Handle_t *pDMAHandle);
+
+/**
+ * Application callback
+ */
+void HT_Complete_callback(void);
+void TC_Complete_callback(void);
+void TE_Complete_callback(void);
+void DME_Complete_callback(void);
+void FE_Complete_callback(void);
 
 
 #endif /* INC_STM32F407XX_DMA_DRIVER_H_ */

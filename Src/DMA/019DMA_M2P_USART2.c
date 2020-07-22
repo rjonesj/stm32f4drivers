@@ -32,22 +32,9 @@ void GPIO_ButtonInit(void);
 void DMA1_Init(void);
 void sendSomeData(void) ;
 
-void HT_Complete_calbback(void);
-void FT_Complete_calbback(void);
-void TE_Complete_calbback(void);
-void DME_Complete_calbback(void);
-void FE_Complete_calbback(void);
-
 USART_Handle_t USART2Handle;
 DMA_Handle_t DMA1Handle;
 char dataStream[] = "Hello World!\n";
-
-#define is_it_HT() 		DMA1->HISR & ( 1 << DMA_HISR_HTIF6)
-#define is_it_FT() 		DMA1->HISR & ( 1 << DMA_HISR_TCIF6)
-#define is_it_TE() 		DMA1->HISR & ( 1 << DMA_HISR_TEIF6)
-#define is_it_FE() 		DMA1->HISR & ( 1 << DMA_HISR_FEIF6)
-#define is_it_DME()		DMA1->HISR & ( 1 << DMA_HISR_DMEIF6)
-
 
 void USART2_GPIOInit(void) {
 	GPIO_Handle_t USARTPins;
@@ -113,6 +100,7 @@ void DMA1_Init(void) {
 	DMA1Handle.DMA_Config.circularMode = DISABLE;
 	DMA1Handle.DMA_Config.priority = DMA_PRIORITY_LOW;
 	DMA1Handle.DMA_Config.channel = DMA_CHANNEL_4;
+	DMA1Handle.DMA_Config.stream = DMA_STREAM_6;
 
 	//Configure DMA for M2P transfer over USART2 TX (Stream 6, Channel 4)
 	DMA1Handle.pDMAx = DMA1;
@@ -156,11 +144,11 @@ void EXTI0_IRQHandler(void) {
 	GPIO_IRQHandling(GPIO_PIN_NO_0); //Clear pending event from EXTI line
 }
 
-void HT_Complete_calbback(void) {
+void HT_Complete_callback(void) {
 
 }
 
-void FT_Complete_calbback(void) {
+void TC_Complete_callback(void) {
 	//Reset number of items to send to
 	DMA1Handle.pDMAStream->NDTR = sizeof(dataStream);
 	//Stop USART DMA requests
@@ -169,35 +157,19 @@ void FT_Complete_calbback(void) {
 	enable_dma_stream(&DMA1Handle);
 }
 
-void TE_Complete_calbback(void) {
+void TE_Complete_callback(void) {
 	while(1);
 }
 
-void FE_Complete_calbback(void) {
+void FE_Complete_callback(void) {
 	while(1);
 }
 
-void DME_Complete_calbback(void) {
+void DME_Complete_callback(void) {
 	while(1);
 }
 
 //IRQ Handler for DMA1 stream6 global interrupt
 void DMA1_Stream6_IRQHandler(void) {
-	if(is_it_HT()) {
-		//clear interrupt flag
-		DMA1->HIFCR |= (1 << DMA_HIFCR_CHTIF6);
-		HT_Complete_calbback();
-	} else if(is_it_FT()) {
-		DMA1->HIFCR |= (1 << DMA_HIFCR_CTCIF6);
-		FT_Complete_calbback();
-	} else if(is_it_TE()) {
-		DMA1->HIFCR |= (1 << DMA_HIFCR_CTEIF6);
-		TE_Complete_calbback();
-	} else if(is_it_FE()) {
-		DMA1->HIFCR |= (1 << DMA_HIFCR_CFEIF4);
-		FE_Complete_calbback();
-	} else if(is_it_DME()) {
-		DMA1->HIFCR |= (1 << DMA_HIFCR_CDMEIF6);
-		DME_Complete_calbback();
-	}
+	DMA_IRQHandling(&DMA1Handle);
 }

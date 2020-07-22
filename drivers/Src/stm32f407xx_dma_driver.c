@@ -105,6 +105,27 @@ void DMA_Init(DMA_Handle_t *pDMAHandle) {
 }
 
 /**
+ * @fn			- DMA_DeInit
+ * @brief		- This function resets all the registers for a DMA controller
+ *
+ * @param[in]	- Base address of the DMA controller
+ *
+ * @return		- none
+ * @note		- none
+ */
+void DMA_DeInit(DMA_RegDef_t *pDMAx) {
+	if(pDMAx == DMA1) {
+		DMA1_REG_RESET();
+	} else if(pDMAx == DMA2) {
+		DMA2_REG_RESET();
+	}
+}
+
+/**
+ * Other peripheral controls
+ */
+
+/**
  * @fn			- enable_dma_stream
  * @brief		- This function enables the configured DMA stream
  *
@@ -149,29 +170,150 @@ void dma_interrupt_configuration(DMA_Handle_t *pDMAHandle) {
 	NVIC_IRQConfig(IRQ_NO_DMA1_STREAM6, ENABLE);
 }
 
+/*********************************************************************
+ * @fn      		  - getInterruptStatus
+ * @brief             - Function returns 1 if given interrupt event occurred on configured DMA stream, 0 otherwise
+ *
+ * @param[in]         - Address to DMA Handle struct
+ *
+ * @return            - SET if event status flag is set for the stream, RESET if false
+ * @Note              - none
 
-/**
- * @fn			- DMA_DeInit
- * @brief		- This function resets all the registers for a DMA controller
- *
- * @param[in]	- Base address of the DMA controller
- *
- * @return		- none
- * @note		- none
  */
-void DMA_DeInit(DMA_RegDef_t *pDMAx) {
-	if(pDMAx == DMA1) {
-		DMA1_REG_RESET();
-	} else if(pDMAx == DMA2) {
-		DMA2_REG_RESET();
+uint8_t getInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent) {
+	uint8_t section = 0;
+	uint8_t upperHalf = 0;
+	uint8_t bitPosition = 0;
+	uint32_t result = 0;
+	__vo uint32_t *statusRegisterAddress;
+
+	//Get address of status register to read
+	if(pDMAHandle->DMA_Config.stream == 0 || pDMAHandle->DMA_Config.stream == 1) {
+		statusRegisterAddress = &pDMAHandle->pDMAx->LISR;
+	} else if(pDMAHandle->DMA_Config.stream == 2 || pDMAHandle->DMA_Config.stream == 3) {
+		upperHalf = 1;
+		statusRegisterAddress = &pDMAHandle->pDMAx->LISR;
+	} else if(pDMAHandle->DMA_Config.stream == 4 || pDMAHandle->DMA_Config.stream == 5) {
+		statusRegisterAddress = &pDMAHandle->pDMAx->HISR;
+	} else if(pDMAHandle->DMA_Config.stream == 6 || pDMAHandle->DMA_Config.stream == 7) {
+		upperHalf = 1;
+		statusRegisterAddress = &pDMAHandle->pDMAx->HISR;
 	}
+
+	//Calculate starting section of stream bits at starting address
+	section = (pDMAHandle->DMA_Config.stream % 2) * 6;
+
+	//Calculate position of event bit from current section
+	if(interruptEvent == DMA_EVENT_FE) {
+		bitPosition = section + 0;
+	} else if(interruptEvent == DMA_EVENT_DME) {
+		bitPosition = section + 2;
+	} else if(interruptEvent == DMA_EVENT_TE) {
+		bitPosition = section + 3;
+	} else if(interruptEvent == DMA_EVENT_HT) {
+		bitPosition = section + 4;
+	} else if(interruptEvent == DMA_EVENT_TC) {
+		bitPosition = section + 5;
+	}
+	bitPosition += upperHalf * 16;
+
+	//Get value of stream interrupt status bit at position
+	result = (*statusRegisterAddress & (1 << bitPosition)) >> bitPosition;
+
+	return result;
 }
 
-/**
- * Data read and write
+/*********************************************************************
+ * @fn      		  - clearInterruptStatus
+ * @brief             - Function clears the interrupt flag status for the configured stream by setting bit in DMA FCR registers
+ *
+ * @param[in]         - Address to DMA Handle struct
+ *
+ * @return            - none
+ * @Note              - none
+
  */
+void clearInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent) {
+	uint8_t section = 0;
+	uint8_t upperHalf = 0;
+	uint8_t bitPosition = 0;
+	__vo uint32_t *statusRegisterAddress;
+
+	//Get address of flag clear register to read
+	if(pDMAHandle->DMA_Config.stream == 0 || pDMAHandle->DMA_Config.stream == 1) {
+		statusRegisterAddress = &pDMAHandle->pDMAx->LIFCR;
+	} else if(pDMAHandle->DMA_Config.stream == 2 || pDMAHandle->DMA_Config.stream == 3) {
+		upperHalf = 1;
+		statusRegisterAddress = &pDMAHandle->pDMAx->LIFCR;
+	} else if(pDMAHandle->DMA_Config.stream == 4 || pDMAHandle->DMA_Config.stream == 5) {
+		statusRegisterAddress = &pDMAHandle->pDMAx->HIFCR;
+	} else if(pDMAHandle->DMA_Config.stream == 6 || pDMAHandle->DMA_Config.stream == 7) {
+		upperHalf = 1;
+		statusRegisterAddress = &pDMAHandle->pDMAx->HIFCR;
+	}
+
+	//Calculate starting section of stream bits at starting address
+	section = (pDMAHandle->DMA_Config.stream % 2) * 6;
+
+	//Calculate position of event bit from current section
+	if(interruptEvent == DMA_EVENT_FE) {
+		bitPosition = section + 0;
+	} else if(interruptEvent == DMA_EVENT_DME) {
+		bitPosition = section + 2;
+	} else if(interruptEvent == DMA_EVENT_TE) {
+		bitPosition = section + 3;
+	} else if(interruptEvent == DMA_EVENT_HT) {
+		bitPosition = section + 4;
+	} else if(interruptEvent == DMA_EVENT_TC) {
+		bitPosition = section + 5;
+	}
+	bitPosition += upperHalf * 16;
+
+	//Set bit to clear corresponding status flag
+	*statusRegisterAddress |= (1 << bitPosition);
+}
 
 /**
  * IRQ Configuration and ISR handling
  */
-void DMA_IRQHandling(uint8_t pinNumber);
+
+/*********************************************************************
+ * @fn      		  - DMA_IRQHandling
+ * @brief             - This function handles IRQ interrupt events for DMA peripheral
+ *
+ * @param[in]         - Address to DMA Handle struct
+ *
+ * @return            - none
+ * @Note              - none
+
+ */
+void DMA_IRQHandling(DMA_Handle_t *pDMAHandle) {
+	if(getInterruptStatus(pDMAHandle, DMA_EVENT_HT)) {
+		//clear interrupt flag
+		clearInterruptStatus(pDMAHandle, DMA_EVENT_HT);
+		//call callback function
+		HT_Complete_callback();
+	} else if(getInterruptStatus(pDMAHandle, DMA_EVENT_TC)) {
+		clearInterruptStatus(pDMAHandle, DMA_EVENT_TC);
+		TC_Complete_callback();
+	} else if(getInterruptStatus(pDMAHandle, DMA_EVENT_TE)) {
+		clearInterruptStatus(pDMAHandle, DMA_EVENT_TE);
+		TE_Complete_callback();
+	} else if(getInterruptStatus(pDMAHandle, DMA_EVENT_FE)) {
+		clearInterruptStatus(pDMAHandle, DMA_EVENT_FE);
+		FE_Complete_callback();
+	} else if(getInterruptStatus(pDMAHandle, DMA_EVENT_DME)) {
+		clearInterruptStatus(pDMAHandle, DMA_EVENT_DME);
+		DME_Complete_callback();
+	}
+}
+
+
+/**
+ * Application callback - Implement in user application
+ */
+__weak void HT_Complete_callback(void);
+__weak void TC_Complete_callback(void);
+__weak void TE_Complete_callback(void);
+__weak void DME_Complete_callback(void);
+__weak void FE_Complete_callback(void);

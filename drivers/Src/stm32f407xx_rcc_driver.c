@@ -69,6 +69,56 @@ void RCC_DeInit(void)
 }
 
 /**
+  * @brief  Function sets the AHB APB1, and APB2 clocks to max freq using main PLL.
+  * @retval None
+  */
+ErrorStatus setClocksToMaxFrequency(void) {
+	ErrorStatus clockStatus = ERROR;
+
+	// Resets the clock configuration to the default reset state
+	RCC_DeInit();
+
+	uint32_t *pRccCfgrReg = (uint32_t*) (RCC_BASEADDR + 0x08);
+
+	//1. Set the RCC clock configuration register MCO1 to PLL
+	*pRccCfgrReg &= ~(0x3 << RCC_CFGR_MCO1); // clear bit 21 - 22 positions
+	*pRccCfgrReg |= (0x3 << RCC_CFGR_MCO1); // set bit 21 - 22 positions to PLL
+
+	// Enable external crystal (HSE)
+	RCC_HSEConfig(RCC_HSE_ON);
+	// Wait until HSE ready to use or not
+	ErrorStatus hseStatus = RCC_WaitForHSEStartUp();
+
+	if (hseStatus == SUCCESS)
+	{
+		// Configure the PLL for 168MHz SysClk and 48MHz for USB OTG, SDIO
+		RCC_PLLConfig(RCC_PLLSource_HSE, 8, 336, 2, 7);
+		// Enable PLL
+		RCC_PLLCmd(ENABLE);
+		// Wait until main PLL clock ready
+		while (RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == FS_RESET);
+
+		// Set flash latency
+		FLASH_SetLatency(FLASH_Latency_5);
+
+		// AHB 168MHz
+		RCC_HCLKConfig(RCC_SYSCLK_Div1);
+		// APB1 42MHz
+		RCC_PCLK1Config(RCC_HCLK_Div4);
+		// APB2 84 MHz
+		RCC_PCLK2Config(RCC_HCLK_Div2);
+
+		// Set SysClk using PLL
+		RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
+
+		//Clocks configured successfully
+		clockStatus = SUCCESS;
+	}
+
+	return clockStatus;
+}
+
+/**
   * @brief  Configures the External High Speed oscillator (HSE).
   * @note   After enabling the HSE (RCC_HSE_ON or RCC_HSE_Bypass), the application
   *         software should wait on HSERDY flag to be set indicating that HSE clock

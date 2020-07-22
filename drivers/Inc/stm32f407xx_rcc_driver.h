@@ -121,6 +121,7 @@
 void        RCC_DeInit(void);
 
 /* Internal/external clocks, PLL, CSS and MCO configuration functions *********/
+ErrorStatus setClocksToMaxFrequency(void);
 void        RCC_HSEConfig(uint8_t RCC_HSE);
 ErrorStatus RCC_WaitForHSEStartUp(void);
 void        RCC_PLLConfig(uint32_t RCC_PLLSource, uint32_t PLLM, uint32_t PLLN, uint32_t PLLP, uint32_t PLLQ);

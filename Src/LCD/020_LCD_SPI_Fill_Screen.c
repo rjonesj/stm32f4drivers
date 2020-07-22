@@ -60,7 +60,7 @@ void LCD_GPIOInit(void) {
 	LCDPins.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
 	LCDPins.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
 	LCDPins.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	LCDPins.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	LCDPins.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
 
 	//DC
 	LCDPins.GPIO_PinConfig.GPIO_PinNumber = LCD_DC;
@@ -87,7 +87,7 @@ void SPI1_GPIOInit(void) {
 	SPIPins.GPIO_PinConfig.GPIO_PinAltFunMode = 5;
 	SPIPins.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
 	SPIPins.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	SPIPins.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	SPIPins.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
 
 	//SCLK
 	SPIPins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_5;
@@ -137,57 +137,12 @@ void DMA2_Init(void) {
 	DMA2Handle.DMA_Config.circularMode = DISABLE;
 	DMA2Handle.DMA_Config.priority = DMA_PRIORITY_LOW;
 	DMA2Handle.DMA_Config.channel = DMA_CHANNEL_3;
+	DMA2Handle.DMA_Config.stream = DMA_CHANNEL_3;
 
 	//Configure DMA2 for M2P transfer over SPI1 TX (Stream 3, Channel 3)
 	DMA2Handle.pDMAx = DMA2;
 	DMA2Handle.pDMAStream = DMA2_Stream3;
 	DMA_Init(&DMA2Handle);
-}
-
-static ErrorStatus setClocksToMaxFrequency() {
-	ErrorStatus clockStatus = ERROR;
-
-	// Resets the clock configuration to the default reset state
-	RCC_DeInit();
-
-	uint32_t *pRccCfgrReg = (uint32_t*) (RCC_BASEADDR + 0x08);
-
-	//1. Set the RCC clock configuration register MCO1 to PLL
-	*pRccCfgrReg &= ~(0x3 << RCC_CFGR_MCO1); // clear bit 21 - 22 positions
-	*pRccCfgrReg |= (0x3 << RCC_CFGR_MCO1); // set bit 21 - 22 positions to PLL
-
-	// Enable external crystal (HSE)
-	RCC_HSEConfig(RCC_HSE_ON);
-	// Wait until HSE ready to use or not
-	ErrorStatus hseStatus = RCC_WaitForHSEStartUp();
-
-	if (hseStatus == SUCCESS)
-	{
-		// Configure the PLL for 168MHz SysClk and 48MHz for USB OTG, SDIO
-		RCC_PLLConfig(RCC_PLLSource_HSE, 8, 336, 2, 7);
-		// Enable PLL
-		RCC_PLLCmd(ENABLE);
-		// Wait until main PLL clock ready
-		while (RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == FS_RESET);
-
-		// Set flash latency
-		FLASH_SetLatency(FLASH_Latency_5);
-
-		// AHB 168MHz
-		RCC_HCLKConfig(RCC_SYSCLK_Div1);
-		// APB1 42MHz
-		RCC_PCLK1Config(RCC_HCLK_Div4);
-		// APB2 84 MHz
-		RCC_PCLK2Config(RCC_HCLK_Div2);
-
-		// Set SysClk using PLL
-		RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
-
-		//Clocks configured successfully
-		clockStatus = SUCCESS;
-	}
-
-	return clockStatus;
 }
 
 /**
