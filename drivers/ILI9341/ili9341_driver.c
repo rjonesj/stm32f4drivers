@@ -7,10 +7,11 @@
 
 #include "ili9341_driver.h"
 
+ILI9341_Handle_t *pILI9341Handle;
 GPIO_Handle_t LCDPins;
 SPI_Handle_t SPIHandle;
 DMA_Handle_t DMAHandle;
-uint8_t lcdReset, lcdCS, lcdDC;
+uint8_t mode, lcdReset, lcdCS, lcdDC, lcdWR, lcdRD;
 uint16_t dmaMaxItemTransfer, xLen, yLen, oxLen, oyLen;
 
 static void delay(void) {
@@ -32,18 +33,33 @@ static void delay(void) {
 
  */
 void ILI9341_Init(ILI9341_Handle_t *pHandle) {
-	LCDPins = *pHandle->pLCDPins;
-	SPIHandle = *pHandle->pSPIHandle;
-	DMAHandle = *pHandle->pDMAHandle;
+	mode = pHandle->intfMode;
+	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
+		LCDPins = *pHandle->pLCDPins;
+		SPIHandle = *pHandle->pSPIHandle;
+		DMAHandle = *pHandle->pDMAHandle;
 
-	lcdReset = pHandle->ILI9341_Config.lcdResetPin;
-	lcdCS = pHandle->ILI9341_Config.lcdCSPin;
-	lcdDC = pHandle->ILI9341_Config.lcdDCPin;
-	xLen = pHandle->ILI9341_Config.xPixels;
-	yLen = pHandle->ILI9341_Config.yPixels;
-	oxLen = xLen;
-	oyLen = yLen;
-	dmaMaxItemTransfer = pHandle->ILI9341_Config.dmaMaxTransfer;
+		lcdReset = pHandle->ILI9341_Config.lcdResetPin;
+		lcdCS = pHandle->ILI9341_Config.lcdCSPin;
+		lcdDC = pHandle->ILI9341_Config.lcdDCPin;
+		xLen = pHandle->ILI9341_Config.xPixels;
+		yLen = pHandle->ILI9341_Config.yPixels;
+		oxLen = xLen;
+		oyLen = yLen;
+		dmaMaxItemTransfer = pHandle->ILI9341_Config.dmaMaxTransfer;
+	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		pILI9341Handle = pHandle;
+		LCDPins = *pHandle->pLCDPins;
+		xLen = pILI9341Handle->ILI9341_Parallel_Config.xPixels;
+		yLen = pILI9341Handle->ILI9341_Parallel_Config.yPixels;
+		oxLen = xLen;
+		oyLen = yLen;
+		lcdReset = pILI9341Handle->ILI9341_Parallel_Config.lcdResetPin;
+		lcdCS = pILI9341Handle->ILI9341_Parallel_Config.lcdCSPin;
+		lcdWR = pILI9341Handle->ILI9341_Parallel_Config.lcdWRPin;
+		lcdRD = pILI9341Handle->ILI9341_Parallel_Config.lcdRDPin;
+		lcdDC = pILI9341Handle->ILI9341_Parallel_Config.lcdDCPin;
+	}
 
 	ILI9341_Reset();
 	ILI9341_PowerOn();
@@ -76,8 +92,15 @@ void ILI9341_PowerOn() {
 	//Enable ILI9341 chip
 	ILI9341_ChipSelect(ENABLE);
 
+	//Set default signal state for 16 bit mode
+	if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		ILI9341_ReadSelect(DISABLE);
+		ILI9341_WriteSelect(DISABLE);
+	}
+
 	/* Reset The Screen */
 	ILI9341_Send_Command(0x01);
+	delay();
 
 	/* Power Control A */
 	ILI9341_Send_Command(0xCB);
@@ -219,10 +242,14 @@ void ILI9341_PowerOn() {
 void ILI9341_Fill_Screen(unsigned int color, uint8_t enableDMA)
 {
 	ILI9341_Set_Address(0, 0, xLen-1, yLen-1);
-	if(enableDMA == ENABLE) {
-		ILI9341_Send_Burst_DMA(color, (long)xLen * (long)yLen);
-	} else {
-		ILI9341_Send_Burst_SPI(color, (long)xLen * (long)yLen);
+	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
+		if(enableDMA == ENABLE) {
+			ILI9341_Send_Burst_DMA(color, (long)xLen * (long)yLen);
+		} else {
+			ILI9341_Send_Burst_SPI(color, (long)xLen * (long)yLen);
+		}
+	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		ILI9341_Send_Burst_Parallel(color, (long)xLen * (long)yLen);
 	}
 }
 
@@ -282,11 +309,22 @@ void ILI9341_Set_Address(unsigned int x1, unsigned int y1, unsigned int x2, unsi
 	t = x1;
 	t <<= 16;
 	t |= x2;
-	ILI9341_SPI_Send_32(0x2A, t); //Column Address Set
+	 //Column Address Set
+	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
+		ILI9341_SPI_Send_32(0x2A, t);
+	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		ILI9341_Parallel_Send_32(0x2A, t);
+	}
+
 	t = y1;
 	t <<= 16;
 	t |= y2;
-	ILI9341_SPI_Send_32(0x2B, t); //Page Address Set
+	//Page Address Set
+	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
+		ILI9341_SPI_Send_32(0x2B, t);
+	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		ILI9341_Parallel_Send_32(0x2B, t);
+	}
 }
 
 /*********************************************************************
@@ -362,6 +400,29 @@ void ILI9341_Send_Burst_DMA(unsigned short ucolor, unsigned long len) {
 	}
 }
 
+/*********************************************************************
+ * @fn      		  - ILI9341_Send_Burst_Parallel
+ * @brief             - Function sends a burst of a given 16 bit color to screen parallel 16 bit data port
+ *
+ * @param[in]         - Pixel color value given in RGB565 format
+ * @param[in]         - Number of pixels to be sent to screen
+ *
+ * @return            - none
+ * @Note              - none
+ */
+void ILI9341_Send_Burst_Parallel(unsigned short ucolor, unsigned long len) {
+	//Send Memory Write command
+	ILI9341_Send_Command(0x2C);
+
+	//Set DC for data bytes
+	ILI9341_DataSelect(ENABLE);
+
+	//Parallel 2 byte method
+	for(int i = 0; i < len; i++) {
+		ILI9341_Parallel_Send(ucolor);
+	}
+}
+
 /**
  * Low Level Data TX functions
  */
@@ -377,7 +438,11 @@ void ILI9341_Send_Burst_DMA(unsigned short ucolor, unsigned long len) {
  */
 void ILI9341_Send_Command(unsigned char command) {
 	ILI9341_DataSelect(DISABLE);
-	ILI9341_SPI_Send(command);
+	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
+		ILI9341_SPI_Send(command);
+	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		ILI9341_Parallel_Send(command);
+	}
 }
 
 /*********************************************************************
@@ -391,7 +456,11 @@ void ILI9341_Send_Command(unsigned char command) {
  */
 void ILI9341_Send_Data(unsigned char data) {
 	ILI9341_DataSelect(ENABLE);
-	ILI9341_SPI_Send(data);
+	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
+		ILI9341_SPI_Send(data);
+	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
+		ILI9341_Parallel_Send(data);
+	}
 }
 
 /*********************************************************************
@@ -426,6 +495,59 @@ void ILI9341_SPI_Send_32(unsigned char command, unsigned long data) {
 void ILI9341_SPI_Send(unsigned char data)
 {
 	SPI_SendData(SPIHandle.pSPIx, &data, 1);
+}
+
+/*********************************************************************
+ * @fn      		  - ILI9341_Parallel_Send
+ * @brief             - Function sets 16 bits of data on configured data pins
+ *
+ * @param[in]         - 2 byte of data to be sent over parallel interface
+ *
+ * @return            - none
+ * @Note              - none
+ */
+void ILI9341_Parallel_Send(uint16_t data)
+{
+	ILI9341_WriteSelect(ENABLE);
+	//Set pins to data
+	for(int i = 0; i < 16; i++) {
+		GPIO_Pin_Handle_t *pinHandle = pILI9341Handle->ILI9341_Parallel_Config.dataPins[i];
+		GPIO_WriteToOutputPin(pinHandle->pGPIOx, pinHandle->pinNo, (data & (1 << i)) >> i);
+	}
+	ILI9341_WriteSelect(DISABLE);
+	//clear pins
+//	for(int i = 0; i < 16; i++) {
+//		GPIO_Pin_Handle_t *pinHandle = pILI9341Handle->ILI9341_Parallel_Config.dataPins[i];
+//		GPIO_WriteToOutputPin(pinHandle->pGPIOx, pinHandle->pinNo, 0);
+//	}
+}
+
+void ILI9341_Parallel_Send_32(unsigned char command, unsigned long data) {
+	ILI9341_Send_Command(command);
+
+	ILI9341_DataSelect(ENABLE);
+	ILI9341_Parallel_Send(data >> 24);
+	ILI9341_Parallel_Send(data >> 16);
+	ILI9341_Parallel_Send(data >> 8);
+	ILI9341_Parallel_Send(data);
+}
+
+/*********************************************************************
+ * @fn      		  - ILI9341_DataPort_Read
+ * @brief             - Function reads 16 bits of data on configured data pins
+ *
+ *
+ * @return            - 16 bit value of configured data pins
+ * @Note              - none
+ */
+uint16_t ILI9341_DataPort_Read(void)
+{
+	uint16_t dataPort = 0;
+	for(int i = 0; i < 16; i++) {
+		GPIO_Pin_Handle_t *pinHandle = pILI9341Handle->ILI9341_Parallel_Config.dataPins[i];
+		dataPort |= ((pinHandle->pGPIOx->ODR & (1 << pinHandle->pinNo)) >> pinHandle->pinNo) << i;
+	}
+	return dataPort;
 }
 
 /**
@@ -465,5 +587,41 @@ void ILI9341_DataSelect(uint8_t enOrDis) {
 		GPIO_WriteToOutputPin(LCDPins.pGPIOx, lcdDC, GPIO_PIN_SET);
 	} else {
 		GPIO_WriteToOutputPin(LCDPins.pGPIOx, lcdDC, GPIO_PIN_RESET);
+	}
+}
+
+/*********************************************************************
+ * @fn      		  - ILI9341_WriteSelect
+ * @brief             - Function sets WR line to LOW if ENABLE to set data to be sent,
+ * 												 HIGH if DISABLE to send data to display module on rising edge.
+ *
+ * @param[in]         - ENABLE or DISABLE macros
+ *
+ * @return            - none
+ * @Note              - none
+ */
+void ILI9341_WriteSelect(uint8_t enOrDis) {
+	if(enOrDis == ENABLE) {
+		GPIO_WriteToOutputPin(LCDPins.pGPIOx, lcdWR, GPIO_PIN_RESET);
+	} else {
+		GPIO_WriteToOutputPin(LCDPins.pGPIOx, lcdWR, GPIO_PIN_SET);
+	}
+}
+
+/*********************************************************************
+ * @fn      		  - ILI9341_ReadSelect
+ * @brief             - Function sets RD line to LOW if ENABLE to allow display module to set data to be read,
+ * 												 HIGH if DISABLE to read data on rising edge.
+ *
+ * @param[in]         - ENABLE or DISABLE macros
+ *
+ * @return            - none
+ * @Note              - none
+ */
+void ILI9341_ReadSelect(uint8_t enOrDis) {
+	if(enOrDis == ENABLE) {
+		GPIO_WriteToOutputPin(LCDPins.pGPIOx, lcdRD, GPIO_PIN_RESET);
+	} else {
+		GPIO_WriteToOutputPin(LCDPins.pGPIOx, lcdRD, GPIO_PIN_SET);
 	}
 }

@@ -141,6 +141,7 @@ void DMA2_Init(void) {
 }
 
 void ILI9341_Handle_Init(void) {
+	ILIHandle.intfMode = ILI9341_MODE_4WIRE_8BIT_SERIAL;
 	ILIHandle.pLCDPins = &LCDPins;
 	ILIHandle.pSPIHandle = &SPI1Handle;
 	ILIHandle.pDMAHandle = &DMA2Handle;
@@ -150,7 +151,6 @@ void ILI9341_Handle_Init(void) {
 	ILIHandle.ILI9341_Config.xPixels = X_PIXELS;
 	ILIHandle.ILI9341_Config.yPixels = Y_PIXELS;
 	ILIHandle.ILI9341_Config.dmaMaxTransfer = DMA_MAX_NDTR;
-	ILIHandle.ILI9341_Config.intfMode = ILI9341_MODE_4WIRE_8BIT_SERIAL;
 
 	ILI9341_Init(&ILIHandle);
 }

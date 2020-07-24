@@ -187,6 +187,21 @@ void GPIO_DeInit(GPIO_RegDef_t *pGPIOx) {
 }
 
 /**
+ * @fn			- GPIO_Pin_Init
+ * @brief		- This functions enables a GPIO pin using the configured handle
+ *
+ * @param[in]	- Base address of the GPIO Handle to configure pin
+ * @param[in]	- GPIO pin number to initialize
+ *
+ * @return		- none
+ * @note		- none
+ */
+void GPIO_Pin_Init(GPIO_Handle_t *gpioHandle, uint8_t pinNo) {
+	gpioHandle->GPIO_PinConfig.GPIO_PinNumber = pinNo;
+	GPIO_Init(gpioHandle);
+}
+
+/**
  * Data read and write
  */
 
