@@ -6,8 +6,11 @@
  */
 
 /*
- * Program turns on a 320X240 pixel TFT LCD screen using ILI9341 driver with 8080 16 bit parallel interface and tests full screen refreshes using alternate colors.
+ * Program turns on a 240x320 pixel TFT LCD screen using ILI9341 driver with 8080 16 bit parallel interface and tests full screen refreshes using alternate colors.
  * This a sample application to test different methods and clock speeds to achieve fast refresh rates.
+ *
+ * Data pins can be configured on any available GPIO pin when using multi port mode. Else, must all be on same port with matching DB pin in single mode.
+ * All others must be configured on the same GPIO port.
  *
  *
  * Connections
@@ -20,7 +23,7 @@
  * RD			-->		PA5
  * CS			-->		PA2
  * F_CS			-->		PA7
- * REST (RESET)-->		PA0
+ * REST (RESET) -->		PA0
  * TEST			-->		PA3
  *
  * DB0			-->		PC6
@@ -53,73 +56,42 @@
 #define LCD_A_WR	 	GPIO_PIN_NO_6
 #define LCD_A_F_CS	 	GPIO_PIN_NO_7
 
-#define LCD_C_DB0	 	GPIO_PIN_NO_6
-#define LCD_C_DB1	 	GPIO_PIN_NO_8
-#define LCD_A_DB2	 	GPIO_PIN_NO_8
-#define LCD_A_DB3	 	GPIO_PIN_NO_10
-#define LCD_D_DB4	 	GPIO_PIN_NO_14
-#define LCD_D_DB5	 	GPIO_PIN_NO_11
-#define LCD_D_DB6	 	GPIO_PIN_NO_9
-#define LCD_D_DB7	 	GPIO_PIN_NO_1
-#define LCD_C_DB8	 	GPIO_PIN_NO_7
-#define LCD_D_DB9	 	GPIO_PIN_NO_12
-#define LCD_A_DB10	 	GPIO_PIN_NO_9
-#define LCD_D_DB11	 	GPIO_PIN_NO_15
-#define LCD_D_DB12	 	GPIO_PIN_NO_13
-#define LCD_D_DB13	 	GPIO_PIN_NO_10
-#define LCD_D_DB14	 	GPIO_PIN_NO_0
-#define LCD_D_DB15	 	GPIO_PIN_NO_2
+#define LCD_B_DB0	 	GPIO_PIN_NO_0
+#define LCD_B_DB1	 	GPIO_PIN_NO_1
+#define LCD_B_DB2	 	GPIO_PIN_NO_2
+#define LCD_B_DB3	 	GPIO_PIN_NO_3
+#define LCD_B_DB4	 	GPIO_PIN_NO_4
+#define LCD_B_DB5	 	GPIO_PIN_NO_5
+#define LCD_B_DB6	 	GPIO_PIN_NO_6
+#define LCD_B_DB7	 	GPIO_PIN_NO_7
+#define LCD_B_DB8	 	GPIO_PIN_NO_8
+#define LCD_B_DB9	 	GPIO_PIN_NO_9
+#define LCD_B_DB10	 	GPIO_PIN_NO_10
+#define LCD_B_DB11	 	GPIO_PIN_NO_11
+#define LCD_B_DB12	 	GPIO_PIN_NO_12
+#define LCD_B_DB13	 	GPIO_PIN_NO_13
+#define LCD_B_DB14	 	GPIO_PIN_NO_14
+#define LCD_B_DB15	 	GPIO_PIN_NO_15
 
 #define X_PIXELS	240
 #define Y_PIXELS	320
 
-#define ILI9341_DATAPIN_0	 	0
-#define ILI9341_DATAPIN_1	 	1
-#define ILI9341_DATAPIN_2	 	2
-#define ILI9341_DATAPIN_3	 	3
-#define ILI9341_DATAPIN_4	 	4
-#define ILI9341_DATAPIN_5	 	5
-#define ILI9341_DATAPIN_6	 	6
-#define ILI9341_DATAPIN_7	 	7
-#define ILI9341_DATAPIN_8	 	8
-#define ILI9341_DATAPIN_9	 	9
-#define ILI9341_DATAPIN_10	 	10
-#define ILI9341_DATAPIN_11	 	11
-#define ILI9341_DATAPIN_12	 	12
-#define ILI9341_DATAPIN_13	 	13
-#define ILI9341_DATAPIN_14	 	14
-#define ILI9341_DATAPIN_15	 	15
-
-GPIO_Pin_Handle_t dataPins[16];
-GPIO_Handle_t A_Pins, C_Pins, D_Pins;
 ILI9341_Handle_t ILIHandle;
+GPIO_Handle_t A_Pins, B_Pins;
 
-static void initGPIOPinConfig(GPIO_Handle_t *gpioHandle);
-static void initDataPin(GPIO_Handle_t *gpioHandle, uint8_t pinNo, uint8_t dataNo);
+static void initOutputPinConfig(GPIO_Handle_t *gpioHandle);
 
-static void initGPIOPinConfig(GPIO_Handle_t *gpioHandle) {
+static void initOutputPinConfig(GPIO_Handle_t *gpioHandle) {
 	gpioHandle->GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
 	gpioHandle->GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
 	gpioHandle->GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	gpioHandle->GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
-}
-
-static void initDataPin(GPIO_Handle_t *gpioHandle, uint8_t pinNo, uint8_t dataNo) {
-	//Initialize GPIO pin
-	GPIO_Pin_Init(gpioHandle, pinNo);
-
-	//Create a pinHandle for the data pin and add it to the dataPins array
-	GPIO_Pin_Handle_t pinHandle;
-	pinHandle.pGPIOx = gpioHandle->pGPIOx;
-	pinHandle.pinNo = pinNo;
-	dataPins[dataNo] = pinHandle;
+	gpioHandle->GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
 }
 
 void LCD_GPIOInit(void) {
 	//Initialize pin configuration
-	initGPIOPinConfig(&A_Pins);
-	initGPIOPinConfig(&C_Pins);
-	initGPIOPinConfig(&D_Pins);
+	initOutputPinConfig(&A_Pins);
+	initOutputPinConfig(&B_Pins);
 
 	//Configure port A pins
 	A_Pins.pGPIOx = GPIOA;
@@ -130,28 +102,25 @@ void LCD_GPIOInit(void) {
 	GPIO_Pin_Init(&A_Pins, LCD_A_WR);
 	GPIO_Pin_Init(&A_Pins, LCD_A_F_CS);
 	GPIO_Pin_Init(&A_Pins, LCD_A_TEST);
-	initDataPin(&A_Pins, LCD_A_DB2, ILI9341_DATAPIN_2);
-	initDataPin(&A_Pins, LCD_A_DB3, ILI9341_DATAPIN_3);
-	initDataPin(&A_Pins, LCD_A_DB10, ILI9341_DATAPIN_10);
 
-	//Configure port C pins
-	C_Pins.pGPIOx = GPIOC;
-	initDataPin(&C_Pins, LCD_C_DB0, ILI9341_DATAPIN_0);
-	initDataPin(&C_Pins, LCD_C_DB1, ILI9341_DATAPIN_1);
-	initDataPin(&C_Pins, LCD_C_DB8, ILI9341_DATAPIN_8);
-
-	//Configure port D pins
-	D_Pins.pGPIOx = GPIOD;
-	initDataPin(&D_Pins, LCD_D_DB4, ILI9341_DATAPIN_4);
-	initDataPin(&D_Pins, LCD_D_DB5, ILI9341_DATAPIN_5);
-	initDataPin(&D_Pins, LCD_D_DB6, ILI9341_DATAPIN_6);
-	initDataPin(&D_Pins, LCD_D_DB7, ILI9341_DATAPIN_7);
-	initDataPin(&D_Pins, LCD_D_DB9, ILI9341_DATAPIN_9);
-	initDataPin(&D_Pins, LCD_D_DB11, ILI9341_DATAPIN_11);
-	initDataPin(&D_Pins, LCD_D_DB12, ILI9341_DATAPIN_12);
-	initDataPin(&D_Pins, LCD_D_DB13, ILI9341_DATAPIN_13);
-	initDataPin(&D_Pins, LCD_D_DB14, ILI9341_DATAPIN_14);
-	initDataPin(&D_Pins, LCD_D_DB15, ILI9341_DATAPIN_15);
+	//Configure port B pins (Parallel Data)
+	B_Pins.pGPIOx = GPIOB;
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB0, ILI9341_DATAPIN_0);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB1, ILI9341_DATAPIN_1);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB2, ILI9341_DATAPIN_2);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB3, ILI9341_DATAPIN_3);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB4, ILI9341_DATAPIN_4);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB5, ILI9341_DATAPIN_5);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB6, ILI9341_DATAPIN_6);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB7, ILI9341_DATAPIN_7);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB8, ILI9341_DATAPIN_8);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB9, ILI9341_DATAPIN_9);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB10, ILI9341_DATAPIN_10);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB11, ILI9341_DATAPIN_11);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB12, ILI9341_DATAPIN_12);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB13, ILI9341_DATAPIN_13);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB14, ILI9341_DATAPIN_14);
+	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB15, ILI9341_DATAPIN_15);
 }
 
 void ILI9341_Handle_Init(void) {
@@ -167,9 +136,9 @@ void ILI9341_Handle_Init(void) {
 	ILIHandle.ILI9341_Parallel_Config.xPixels = X_PIXELS;
 	ILIHandle.ILI9341_Parallel_Config.yPixels = Y_PIXELS;
 
-	for(int i = 0; i < sizeof(dataPins)/sizeof(GPIO_Pin_Handle_t); i++) {
-		ILIHandle.ILI9341_Parallel_Config.dataPins[i] = &dataPins[i];
-	}
+	//Single port initialization
+	ILIHandle.ILI9341_Parallel_Config.dataPortMode = ILI9341_PARALLEL_PORTMODE_SINGLE;
+	ILIHandle.ILI9341_Parallel_Config.singleDataPort = GPIOB;
 
 	ILI9341_Init(&ILIHandle);
 }
@@ -195,8 +164,8 @@ int main(void) {
 	GPIO_WriteToOutputPin(A_Pins.pGPIOx, LCD_A_TEST, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(A_Pins.pGPIOx, LCD_A_TEST, GPIO_PIN_RESET);
 	for(int i = 0; i < 30; i++) {
-		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE, ENABLE);
-		ILI9341_Fill_Screen(ILI9341_COLOR_RED, ENABLE);
+		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE);
+		ILI9341_Fill_Screen(ILI9341_COLOR_RED);
 	}
 	GPIO_WriteToOutputPin(A_Pins.pGPIOx, LCD_A_TEST, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(A_Pins.pGPIOx, LCD_A_TEST, GPIO_PIN_RESET);

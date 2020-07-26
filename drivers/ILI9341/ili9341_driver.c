@@ -9,10 +9,11 @@
 
 ILI9341_Handle_t *pILI9341Handle;
 GPIO_Handle_t LCDPins;
-SPI_Handle_t SPIHandle;
-DMA_Handle_t DMAHandle;
+GPIO_Pin_Handle_t dataPins[16];
 uint8_t mode, lcdReset, lcdCS, lcdDC, lcdWR, lcdRD;
-uint16_t dmaMaxItemTransfer, xLen, yLen, oxLen, oyLen;
+uint16_t xLen, yLen, oxLen, oyLen;
+void (*pSendDataFunction)(uint16_t);		/* Address to function which sends data */
+void (*pBurstFunction)(unsigned short ucolor, unsigned long len); /* Address to function which sends data burst*/
 
 static void delay(void) {
 	for(int i = 0; i < 500000; i++);
@@ -21,6 +22,26 @@ static void delay(void) {
 /**
  * Initialization and De-Initialization
  */
+/*********************************************************************
+ * @fn      		  - ILI9341_DataPin_Init
+ * @brief             - Function initializes the GPIO pin and sets it in the dataPins array.
+ * 						Only needs to be called to initialize parallel data pins when using multi port mode before ILI9341_Init.
+ *
+ * @param[in]         - Address to ILI9341_Handle_t struct
+ *
+ * @return            - none
+
+ */
+void ILI9341_DataPin_Init(GPIO_Handle_t *gpioHandle, uint8_t pinNo, uint8_t dataNo) {
+	//Initialize GPIO pin
+	GPIO_Pin_Init(gpioHandle, pinNo);
+
+	//Create a pinHandle for the data pin and add it to the dataPins array
+	GPIO_Pin_Handle_t pinHandle;
+	pinHandle.pGPIOx = gpioHandle->pGPIOx;
+	pinHandle.pinNo = pinNo;
+	dataPins[dataNo] = pinHandle;
+}
 
 /*********************************************************************
  * @fn      		  - ILI9341_Init
@@ -33,33 +54,44 @@ static void delay(void) {
 
  */
 void ILI9341_Init(ILI9341_Handle_t *pHandle) {
+	pILI9341Handle = pHandle;
 	mode = pHandle->intfMode;
+	LCDPins = *pHandle->pLCDPins;
 	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
-		LCDPins = *pHandle->pLCDPins;
-		SPIHandle = *pHandle->pSPIHandle;
-		DMAHandle = *pHandle->pDMAHandle;
+		lcdReset = pHandle->ILI9341_SPI_Config.lcdResetPin;
+		lcdCS = pHandle->ILI9341_SPI_Config.lcdCSPin;
+		lcdDC = pHandle->ILI9341_SPI_Config.lcdDCPin;
+		xLen = pHandle->ILI9341_SPI_Config.xPixels;
+		yLen = pHandle->ILI9341_SPI_Config.yPixels;
 
-		lcdReset = pHandle->ILI9341_Config.lcdResetPin;
-		lcdCS = pHandle->ILI9341_Config.lcdCSPin;
-		lcdDC = pHandle->ILI9341_Config.lcdDCPin;
-		xLen = pHandle->ILI9341_Config.xPixels;
-		yLen = pHandle->ILI9341_Config.yPixels;
-		oxLen = xLen;
-		oyLen = yLen;
-		dmaMaxItemTransfer = pHandle->ILI9341_Config.dmaMaxTransfer;
+		//Initialize function addresses
+		pSendDataFunction = ILI9341_SPI_Send;
+		if(pILI9341Handle->ILI9341_SPI_Config.enableDMA == ENABLE) {
+			pBurstFunction = ILI9341_Send_Burst_DMA;
+		} else {
+			pBurstFunction = ILI9341_Send_Burst_SPI;
+		}
+
+
 	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
-		pILI9341Handle = pHandle;
-		LCDPins = *pHandle->pLCDPins;
 		xLen = pILI9341Handle->ILI9341_Parallel_Config.xPixels;
 		yLen = pILI9341Handle->ILI9341_Parallel_Config.yPixels;
-		oxLen = xLen;
-		oyLen = yLen;
 		lcdReset = pILI9341Handle->ILI9341_Parallel_Config.lcdResetPin;
 		lcdCS = pILI9341Handle->ILI9341_Parallel_Config.lcdCSPin;
 		lcdWR = pILI9341Handle->ILI9341_Parallel_Config.lcdWRPin;
 		lcdRD = pILI9341Handle->ILI9341_Parallel_Config.lcdRDPin;
 		lcdDC = pILI9341Handle->ILI9341_Parallel_Config.lcdDCPin;
+
+		//Initialize function addresses
+		if(pILI9341Handle->ILI9341_Parallel_Config.dataPortMode == ILI9341_PARALLEL_PORTMODE_SINGLE) {
+			pSendDataFunction = ILI9341_Parallel_Send_SinglePort;
+		} else {
+			pSendDataFunction = ILI9341_Parallel_Send;
+		}
+		pBurstFunction = ILI9341_Send_Burst_Parallel;
 	}
+	oxLen = xLen;
+	oyLen = yLen;
 
 	ILI9341_Reset();
 	ILI9341_PowerOn();
@@ -234,23 +266,14 @@ void ILI9341_PowerOn() {
  * @brief             - Function fills screen with a given 16 bit color
  *
  * @param[in]         - Pixel color value given in RGB565 format
- * @param[in]         - ENABLE or DISABLE macro to use DMA for data transfer
  *
  * @return            - none
  * @Note              - none
  */
-void ILI9341_Fill_Screen(unsigned int color, uint8_t enableDMA)
+void ILI9341_Fill_Screen(unsigned int color)
 {
 	ILI9341_Set_Address(0, 0, xLen-1, yLen-1);
-	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
-		if(enableDMA == ENABLE) {
-			ILI9341_Send_Burst_DMA(color, (long)xLen * (long)yLen);
-		} else {
-			ILI9341_Send_Burst_SPI(color, (long)xLen * (long)yLen);
-		}
-	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
-		ILI9341_Send_Burst_Parallel(color, (long)xLen * (long)yLen);
-	}
+	pBurstFunction(color, (long)xLen * (long)yLen);
 }
 
 /*
@@ -310,21 +333,13 @@ void ILI9341_Set_Address(unsigned int x1, unsigned int y1, unsigned int x2, unsi
 	t <<= 16;
 	t |= x2;
 	 //Column Address Set
-	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
-		ILI9341_SPI_Send_32(0x2A, t);
-	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
-		ILI9341_Parallel_Send_32(0x2A, t);
-	}
+	ILI9341_Send_32(0x2A, t);
 
 	t = y1;
 	t <<= 16;
 	t |= y2;
 	//Page Address Set
-	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
-		ILI9341_SPI_Send_32(0x2B, t);
-	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
-		ILI9341_Parallel_Send_32(0x2B, t);
-	}
+	ILI9341_Send_32(0x2B, t);
 }
 
 /*********************************************************************
@@ -347,8 +362,8 @@ void ILI9341_Send_Burst_SPI(unsigned short ucolor, unsigned long len) {
 	//SPI single byte method
 	unsigned char high_bit = ucolor >> 8, low_bit = ucolor;
 	for(int i = 0; i < len; i++) {
-		ILI9341_SPI_Send(high_bit);
-		ILI9341_SPI_Send(low_bit);
+		pSendDataFunction(high_bit);
+		pSendDataFunction(low_bit);
 	}
 }
 
@@ -371,6 +386,9 @@ void ILI9341_Send_Burst_DMA(unsigned short ucolor, unsigned long len) {
 	ILI9341_DataSelect(ENABLE);
 	//Flip the bytes for the little-endian ARM core.
 	ucolor = (((ucolor & 0x00FF) << 8) | ((ucolor & 0xFF00) >> 8));
+	//Configure DMA Handle
+	DMA_Handle_t DMAHandle = *pILI9341Handle->ILI9341_SPI_Config.pDMAHandle;
+	uint16_t dmaMaxItemTransfer = pILI9341Handle->ILI9341_SPI_Config.dmaMaxTransfer;
 	DMAHandle.DMA_Config.sourceAddress = (uint32_t *)&ucolor;
 	//Program color source address
 	DMAHandle.pDMAStream->M0AR = (uint32_t) DMAHandle.DMA_Config.sourceAddress;
@@ -398,6 +416,7 @@ void ILI9341_Send_Burst_DMA(unsigned short ucolor, unsigned long len) {
 			len = 0;
 		}
 	}
+	DMAHandle.DMA_Config.sourceAddress = NULL;
 }
 
 /*********************************************************************
@@ -419,7 +438,7 @@ void ILI9341_Send_Burst_Parallel(unsigned short ucolor, unsigned long len) {
 
 	//Parallel 2 byte method
 	for(int i = 0; i < len; i++) {
-		ILI9341_Parallel_Send(ucolor);
+		pSendDataFunction(ucolor);
 	}
 }
 
@@ -438,11 +457,7 @@ void ILI9341_Send_Burst_Parallel(unsigned short ucolor, unsigned long len) {
  */
 void ILI9341_Send_Command(unsigned char command) {
 	ILI9341_DataSelect(DISABLE);
-	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
-		ILI9341_SPI_Send(command);
-	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
-		ILI9341_Parallel_Send(command);
-	}
+	pSendDataFunction(command);
 }
 
 /*********************************************************************
@@ -456,15 +471,11 @@ void ILI9341_Send_Command(unsigned char command) {
  */
 void ILI9341_Send_Data(unsigned char data) {
 	ILI9341_DataSelect(ENABLE);
-	if(mode == ILI9341_MODE_4WIRE_8BIT_SERIAL) {
-		ILI9341_SPI_Send(data);
-	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
-		ILI9341_Parallel_Send(data);
-	}
+	pSendDataFunction(data);
 }
 
 /*********************************************************************
- * @fn      		  - ILI9341_SPI_Send_32
+ * @fn      		  - ILI9341_Send_32
  * @brief             - Function sends a command and 4 bytes of data to device
  *
  * @param[in]         - Command to send to device
@@ -473,28 +484,28 @@ void ILI9341_Send_Data(unsigned char data) {
  * @return            - none
  * @Note              - none
  */
-void ILI9341_SPI_Send_32(unsigned char command, unsigned long data) {
+void ILI9341_Send_32(unsigned char command, unsigned long data) {
 	ILI9341_Send_Command(command);
 
 	ILI9341_DataSelect(ENABLE);
-	ILI9341_SPI_Send(data >> 24);
-	ILI9341_SPI_Send(data >> 16);
-	ILI9341_SPI_Send(data >> 8);
-	ILI9341_SPI_Send(data);
+	pSendDataFunction(data >> 24);
+	pSendDataFunction(data >> 16);
+	pSendDataFunction(data >> 8);
+	pSendDataFunction(data);
 }
 
 /*********************************************************************
  * @fn      		  - ILI9341_SPI_Send
  * @brief             - Function sends 1 byte of data over configured SPI peripheral
  *
- * @param[in]         - 1 byte of data to be sent over SPI
+ * @param[in]         - 1 byte of data to be sent over SPI (top 8 bits will be ignored)
  *
  * @return            - none
  * @Note              - none
  */
-void ILI9341_SPI_Send(unsigned char data)
+void ILI9341_SPI_Send(uint16_t data)
 {
-	SPI_SendData(SPIHandle.pSPIx, &data, 1);
+	SPI_SendData(pILI9341Handle->ILI9341_SPI_Config.pSPIHandle->pSPIx, (uint8_t *)&data, 1);
 }
 
 /*********************************************************************
@@ -511,7 +522,7 @@ void ILI9341_Parallel_Send(uint16_t data)
 	ILI9341_WriteSelect(ENABLE);
 	//Set pins to data
 	for(int i = 0; i < 16; i++) {
-		GPIO_Pin_Handle_t *pinHandle = pILI9341Handle->ILI9341_Parallel_Config.dataPins[i];
+		GPIO_Pin_Handle_t *pinHandle = &dataPins[i];
 		GPIO_WriteToOutputPin(pinHandle->pGPIOx, pinHandle->pinNo, (data & (1 << i)) >> i);
 	}
 	ILI9341_WriteSelect(DISABLE);
@@ -522,32 +533,25 @@ void ILI9341_Parallel_Send(uint16_t data)
 //	}
 }
 
-void ILI9341_Parallel_Send_32(unsigned char command, unsigned long data) {
-	ILI9341_Send_Command(command);
-
-	ILI9341_DataSelect(ENABLE);
-	ILI9341_Parallel_Send(data >> 24);
-	ILI9341_Parallel_Send(data >> 16);
-	ILI9341_Parallel_Send(data >> 8);
-	ILI9341_Parallel_Send(data);
-}
-
 /*********************************************************************
- * @fn      		  - ILI9341_DataPort_Read
- * @brief             - Function reads 16 bits of data on configured data pins
+ * @fn      		  - ILI9341_Parallel_Send_SinglePort
+ * @brief             - Function sets 16 bits of data on configured data pins on single GPIO port
  *
+ * @param[in]         - 2 byte of data to be sent over parallel interface
  *
- * @return            - 16 bit value of configured data pins
+ * @return            - none
  * @Note              - none
  */
-uint16_t ILI9341_DataPort_Read(void)
+void ILI9341_Parallel_Send_SinglePort(uint16_t data)
 {
-	uint16_t dataPort = 0;
-	for(int i = 0; i < 16; i++) {
-		GPIO_Pin_Handle_t *pinHandle = pILI9341Handle->ILI9341_Parallel_Config.dataPins[i];
-		dataPort |= ((pinHandle->pGPIOx->ODR & (1 << pinHandle->pinNo)) >> pinHandle->pinNo) << i;
-	}
-	return dataPort;
+	ILI9341_WriteSelect(ENABLE);
+	GPIO_WriteToOutputPort(pILI9341Handle->ILI9341_Parallel_Config.singleDataPort, data);
+	ILI9341_WriteSelect(DISABLE);
+	//clear pins
+//	for(int i = 0; i < 16; i++) {
+//		GPIO_Pin_Handle_t *pinHandle = pILI9341Handle->ILI9341_Parallel_Config.dataPins[i];
+//		GPIO_WriteToOutputPin(pinHandle->pGPIOx, pinHandle->pinNo, 0);
+//	}
 }
 
 /**
