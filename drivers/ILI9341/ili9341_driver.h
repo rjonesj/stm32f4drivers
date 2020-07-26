@@ -19,8 +19,6 @@ typedef struct {
 	uint8_t lcdResetPin;				/* GPIO Pin Configured for RESET */
 	uint8_t lcdCSPin;					/* GPIO Pin Configured for CS */
 	uint8_t lcdDCPin;					/* GPIO Pin Configured for DC */
-	uint16_t xPixels;					/* Number of pixels on x-axis in default vertical mode */
-	uint16_t yPixels;					/* Number of pixels on y-axis in default vertical mode */
 	uint8_t enableDMA;					/* ENABLE or DISABLE macro to use DMA for data transfer */
 	DMA_Handle_t *pDMAHandle;			/* This holds the base address of the configured DMA stream to send data to SPI Tx Buffer */
 	uint16_t dmaMaxTransfer;			/* Max number of items to send when using DMA transfers */
@@ -35,8 +33,6 @@ typedef struct {
 	uint8_t lcdRDPin;					/* GPIO Pin Configured for RD */
 	uint8_t lcdCSPin;					/* GPIO Pin Configured for CS */
 	uint8_t lcdDCPin;					/* GPIO Pin Configured for DC */
-	uint16_t xPixels;					/* Number of pixels on x-axis in default vertical mode */
-	uint16_t yPixels;					/* Number of pixels on y-axis in default vertical mode */
 	uint8_t dataPortMode;				/* Possible values from ILI9341_PARALLEL_PORTMODE */
 	GPIO_RegDef_t *singleDataPort;		/* Set this element when all data pins are configured on the same GPIO port */
 	GPIO_Pin_Handle_t *dataPins[16];	/* Set this element when data pins are on multiple GPIO ports */
@@ -47,6 +43,8 @@ typedef struct {
  */
 typedef struct {
 	GPIO_Handle_t *pLCDPins;					/* This holds the base address of the LCD GPIO Pins */
+	uint16_t xPixels;							/* Number of pixels on x-axis in default vertical mode */
+	uint16_t yPixels;							/* Number of pixels on y-axis in default vertical mode */
 	ILI9341_SPI_Config_t ILI9341_SPI_Config;			/* This holds the ILI9341 configuration settings for SPI mode */
 	ILI9341_Parallel_Config_t ILI9341_Parallel_Config;			/* This holds the ILI9341 configuration settings for parallel mode*/
 	uint8_t intfMode;					/* MCU Interface Selection - possible values from @ILI9341_MODE */
@@ -121,6 +119,7 @@ void ILI9341_Set_Address(unsigned int x1, unsigned int y1, unsigned int x2, unsi
 void ILI9341_Send_Burst_SPI(unsigned short ucolor, unsigned long len);
 void ILI9341_Send_Burst_DMA(unsigned short ucolor, unsigned long len);
 void ILI9341_Send_Burst_Parallel(unsigned short ucolor, unsigned long len);
+void ILI9341_Send_Burst_Parallel_SinglePort(unsigned short ucolor, unsigned long len);
 
 /**
  * Low Level Data TX functions

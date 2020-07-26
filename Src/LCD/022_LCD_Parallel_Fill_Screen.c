@@ -10,7 +10,7 @@
  * This a sample application to test different methods and clock speeds to achieve fast refresh rates.
  *
  * Data pins can be configured on any available GPIO pin when using multi port mode. Else, must all be on same port with matching DB pin in single mode.
- * All others must be configured on the same GPIO port.
+ * All other LCD pins must be configured on the same GPIO port.
  *
  *
  * Connections
@@ -22,26 +22,25 @@
  * WR			-->		PA6
  * RD			-->		PA5
  * CS			-->		PA2
- * F_CS			-->		PA7
  * REST (RESET) -->		PA0
  * TEST			-->		PA3
  *
- * DB0			-->		PC6
- * DB1			-->		PC8
- * DB2			-->		PA8
- * DB3			-->		PA10
- * DB4			-->		PD14
- * DB5			-->		PD11
- * DB6			-->		PD9
- * DB7			-->		PD1
- * DB8			-->		PC7
- * DB9			-->		PD12
- * DB10			-->		PA9
- * DB11			-->		PD15
- * DB12			-->		PD13
- * DB13			-->		PD10
- * DB14			-->		PD0
- * DB15			-->		PD2
+ * DB0			-->		PB0
+ * DB1			-->		PB1
+ * DB2			-->		PB2
+ * DB3			-->		PB3
+ * DB4			-->		PB4
+ * DB5			-->		PB5
+ * DB6			-->		PB6
+ * DB7			-->		PB7
+ * DB8			-->		PB8
+ * DB9			-->		PB9
+ * DB10			-->		PB10
+ * DB11			-->		PB11
+ * DB12			-->		PB12
+ * DB13			-->		PB13
+ * DB14			-->		PB14
+ * DB15			-->		PB15
  */
 
 # include "stm32f407xx.h"
@@ -54,7 +53,6 @@
 #define LCD_A_TEST	 	GPIO_PIN_NO_3
 #define LCD_A_RD	 	GPIO_PIN_NO_5
 #define LCD_A_WR	 	GPIO_PIN_NO_6
-#define LCD_A_F_CS	 	GPIO_PIN_NO_7
 
 #define LCD_B_DB0	 	GPIO_PIN_NO_0
 #define LCD_B_DB1	 	GPIO_PIN_NO_1
@@ -100,7 +98,6 @@ void LCD_GPIOInit(void) {
 	GPIO_Pin_Init(&A_Pins, LCD_A_CS);
 	GPIO_Pin_Init(&A_Pins, LCD_A_RD);
 	GPIO_Pin_Init(&A_Pins, LCD_A_WR);
-	GPIO_Pin_Init(&A_Pins, LCD_A_F_CS);
 	GPIO_Pin_Init(&A_Pins, LCD_A_TEST);
 
 	//Configure port B pins (Parallel Data)
@@ -123,18 +120,17 @@ void LCD_GPIOInit(void) {
 	ILI9341_DataPin_Init(&B_Pins, LCD_B_DB15, ILI9341_DATAPIN_15);
 }
 
-void ILI9341_Handle_Init(void) {
+void ILI9341_Driver_Init(void) {
 	ILIHandle.intfMode = ILI9341_MODE_8080_I_16BIT_PARALLEL;
-
 	ILIHandle.pLCDPins = &A_Pins;
+	ILIHandle.xPixels = X_PIXELS;
+	ILIHandle.yPixels = Y_PIXELS;
+
 	ILIHandle.ILI9341_Parallel_Config.lcdResetPin = LCD_A_REST;
 	ILIHandle.ILI9341_Parallel_Config.lcdWRPin = LCD_A_WR;
 	ILIHandle.ILI9341_Parallel_Config.lcdRDPin = LCD_A_RD;
 	ILIHandle.ILI9341_Parallel_Config.lcdCSPin = LCD_A_CS;
 	ILIHandle.ILI9341_Parallel_Config.lcdDCPin = LCD_A_RS;
-
-	ILIHandle.ILI9341_Parallel_Config.xPixels = X_PIXELS;
-	ILIHandle.ILI9341_Parallel_Config.yPixels = Y_PIXELS;
 
 	//Single port initialization
 	ILIHandle.ILI9341_Parallel_Config.dataPortMode = ILI9341_PARALLEL_PORTMODE_SINGLE;
@@ -155,7 +151,7 @@ int main(void) {
 	LCD_GPIOInit();
 
 	//Initialize ILI9341 driver
-	ILI9341_Handle_Init();
+	ILI9341_Driver_Init();
 
 	/* Set rotation to landscape */
 	ILI9341_Set_Rotation(1);
@@ -163,6 +159,7 @@ int main(void) {
 	//Perform 60 alternating color screen refreshes
 	GPIO_WriteToOutputPin(A_Pins.pGPIOx, LCD_A_TEST, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(A_Pins.pGPIOx, LCD_A_TEST, GPIO_PIN_RESET);
+	ILI9341_Set_Address(0, 0, Y_PIXELS-1, X_PIXELS-1);
 	for(int i = 0; i < 30; i++) {
 		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE);
 		ILI9341_Fill_Screen(ILI9341_COLOR_RED);

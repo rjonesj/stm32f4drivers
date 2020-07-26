@@ -140,16 +140,18 @@ void DMA2_Init(void) {
 	DMA_Init(&DMA2Handle);
 }
 
-void ILI9341_Handle_Init(void) {
+void ILI9341_Driver_Init(void) {
 	ILIHandle.intfMode = ILI9341_MODE_4WIRE_8BIT_SERIAL;
 	ILIHandle.pLCDPins = &LCDPins;
+	ILIHandle.xPixels = X_PIXELS;
+	ILIHandle.yPixels = Y_PIXELS;
+
 	ILIHandle.ILI9341_SPI_Config.lcdCSPin = LCD_CS;
 	ILIHandle.ILI9341_SPI_Config.lcdDCPin = LCD_DC;
 	ILIHandle.ILI9341_SPI_Config.lcdResetPin = LCD_RESET;
-	ILIHandle.ILI9341_SPI_Config.xPixels = X_PIXELS;
-	ILIHandle.ILI9341_SPI_Config.yPixels = Y_PIXELS;
-	ILIHandle.ILI9341_SPI_Config.dmaMaxTransfer = DMA_MAX_NDTR;
 	ILIHandle.ILI9341_SPI_Config.enableDMA = ENABLE;
+	ILIHandle.ILI9341_SPI_Config.pDMAHandle = &DMA2Handle;
+	ILIHandle.ILI9341_SPI_Config.dmaMaxTransfer = DMA_MAX_NDTR;
 
 	ILI9341_Init(&ILIHandle);
 }
@@ -186,7 +188,7 @@ int main(void) {
 	DMA2_Init();
 
 	//Initialize ILI9341 driver
-	ILI9341_Handle_Init();
+	ILI9341_Driver_Init();
 
 	/* Set rotation to landscape */
 	ILI9341_Set_Rotation(3);
@@ -194,6 +196,7 @@ int main(void) {
 	//Perform 60 alternating color screen refreshes
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
+	ILI9341_Set_Address(0, 0, Y_PIXELS-1, X_PIXELS-1);
 	for(int i = 0; i < 30; i++) {
 		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE);
 		ILI9341_Fill_Screen(ILI9341_COLOR_RED);
