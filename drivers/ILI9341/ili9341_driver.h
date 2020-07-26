@@ -31,9 +31,9 @@ typedef struct {
  */
 typedef struct {
 	uint8_t lcdResetPin;				/* GPIO Pin Configured for RESET */
-	uint8_t lcdWRPin;					/* GPIO Pin Configured for RESET */
-	uint8_t lcdRDPin;					/* GPIO Pin Configured for CS */
-	uint8_t lcdCSPin;					/* GPIO Pin Configured for DC */
+	uint8_t lcdWRPin;					/* GPIO Pin Configured for WR */
+	uint8_t lcdRDPin;					/* GPIO Pin Configured for RD */
+	uint8_t lcdCSPin;					/* GPIO Pin Configured for CS */
 	uint8_t lcdDCPin;					/* GPIO Pin Configured for DC */
 	uint16_t xPixels;					/* Number of pixels on x-axis in default vertical mode */
 	uint16_t yPixels;					/* Number of pixels on y-axis in default vertical mode */

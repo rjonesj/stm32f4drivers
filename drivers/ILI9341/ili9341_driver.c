@@ -71,8 +71,6 @@ void ILI9341_Init(ILI9341_Handle_t *pHandle) {
 		} else {
 			pBurstFunction = ILI9341_Send_Burst_SPI;
 		}
-
-
 	} else if(mode == ILI9341_MODE_8080_I_16BIT_PARALLEL) {
 		xLen = pILI9341Handle->ILI9341_Parallel_Config.xPixels;
 		yLen = pILI9341Handle->ILI9341_Parallel_Config.yPixels;
