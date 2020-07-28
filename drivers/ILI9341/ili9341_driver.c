@@ -9,14 +9,34 @@
 
 ILI9341_Handle_t *pILI9341Handle;
 GPIO_Handle_t LCDPins;
+TIMB_Handle_t timb6Handle;
 GPIO_Pin_Handle_t dataPins[16];
+
 uint8_t mode, lcdReset, lcdCS, lcdDC, lcdWR, lcdRD;
 uint16_t xLen, yLen, oxLen, oyLen;
 void (*pSendDataFunction)(uint16_t);		/* Address to function which sends data */
 void (*pBurstFunction)(unsigned short ucolor, unsigned long len); /* Address to function which sends data burst*/
 
+static void TIMB6_Init(void) {
+	timb6Handle.pTIMBx = TIM6;
+	timb6Handle.pTIMB_Config.prescaler = 24;
+	timb6Handle.pTIMB_Config.autoReloadValue = 63999;
+
+	TIMB_Init(&timb6Handle);
+}
+
 static void delay(void) {
-	for(int i = 0; i < 500000; i++);
+//	for(int i = 0; i < 500000; i++);
+
+	//Start timer
+	TIMB_Start(timb6Handle.pTIMBx);
+	//Wait for update event
+	while(!(TIM6->SR & (1 << TIMx_SR_UIF))) ;
+	//Clear interrrupt flag
+	TIM6->SR = 0;
+	//Stop timer
+	TIMB_Stop(timb6Handle.pTIMBx);
+
 }
 
 /**
@@ -54,6 +74,9 @@ void ILI9341_DataPin_Init(GPIO_Handle_t *gpioHandle, uint8_t pinNo, uint8_t data
 
  */
 void ILI9341_Init(ILI9341_Handle_t *pHandle) {
+	//Initialize timer
+	TIMB6_Init();
+
 	pILI9341Handle = pHandle;
 	mode = pHandle->intfMode;
 	LCDPins = *pHandle->pLCDPins;

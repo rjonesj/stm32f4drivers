@@ -242,6 +242,12 @@ void FLASH_SetLatency(uint8_t FLASH_Latency);
 #define SYSCFG_PCLK_EN()	(RCC->APB2ENR |= (1 << 14))
 
 /**
+ * Clock Enable Macros for TIMx peripherals
+ */
+#define TIM6_PCLK_EN()		(RCC->APB1ENR |= (1 << 4))
+#define TIM7_PCLK_EN()		(RCC->APB1ENR |= (1 << 5))
+
+/**
  * Clock Disable Macros for GPIOx peripherals
  */
 #define GPIOA_PCLK_DS()		(RCC->AHB1ENR &= ~(1 << 0))
@@ -297,6 +303,12 @@ void FLASH_SetLatency(uint8_t FLASH_Latency);
 #define SYSCFG_PCLK_DS()	(RCC->APB2ENR &= ~(1 << 14))
 
 /**
+ * Clock Disable Macros for TIMx peripherals
+ */
+#define TIM6_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 4))
+#define TIM7_PCLK_DS()		(RCC->APB1ENR &= ~(1 << 5))
+
+/**
  * Register Reset Macros for GPIOx peripherals
  * Bit must first be set then cleared so it does not stay in reset state
  */
@@ -349,6 +361,12 @@ void FLASH_SetLatency(uint8_t FLASH_Latency);
  * Bit must first be set then cleared so it does not stay in reset state
  */
 #define ADC_REG_RESET()		do {(RCC->APB2RSTR |= (1 << 8)); (RCC->APB2RSTR &= ~(1 << 8)); } while(0)
+
+/**
+ * Clock Disable Macros for TIMx peripherals
+ */
+#define TIM6_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 4)); (RCC->APB1RSTR &= ~(1 << 4)); } while(0)
+#define TIM7_REG_RESET()		do {(RCC->APB1RSTR |= (1 << 5)); (RCC->APB1RSTR &= ~(1 << 5)); } while(0)
 
 
 #endif /* INC_STM32F407XX_RCC_DRIVER_H_ */

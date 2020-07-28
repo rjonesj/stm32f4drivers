@@ -77,6 +77,94 @@ typedef struct {
 #define ADC_CH_IN18					18			/* ADC Channel 18 - Vsense and Vbat (Backup operating voltage) */
 
 
+/*******************************************************************************************************************
+ * Bit position definitions of ADC peripheral
+ *******************************************************************************************************************/
+
+/*
+ * Bit position definitions for ADC_SR
+ */
+#define ADC_SR_AWD			0
+#define ADC_SR_EOC			1
+#define ADC_SR_JEOC			2
+#define ADC_SR_JSTRT		3
+#define ADC_SR_STRT			4
+#define ADC_SR_OVR			5
+
+/*
+ * Bit position definitions for ADC_CR1
+ */
+#define ADC_CR1_AWDCH			0
+#define ADC_CR1_EOCIE			5
+#define ADC_CR1_AWDIE			6
+#define ADC_CR1_JEOCIE			7
+#define ADC_CR1_SCAN			8
+#define ADC_CR1_AWDSGL			9
+#define ADC_CR1_JAUTO			10
+#define ADC_CR1_DISCEN			11
+#define ADC_CR1_JDISCEN			12
+#define ADC_CR1_DISCNUM			13
+#define ADC_CR1_JAWDEN			22
+#define ADC_CR1_AWDEN			23
+#define ADC_CR1_RES				24
+#define ADC_CR1_OVRIE			26
+
+/*
+ * Bit position definitions for ADC_CR2
+ */
+#define ADC_CR2_ADON			0
+#define ADC_CR2_CONT			1
+#define ADC_CR2_DMA				8
+#define ADC_CR2_DDS				9
+#define ADC_CR2_EOCS			10
+#define ADC_CR2_ALIGN			11
+#define ADC_CR2_JEXTSEL			16
+#define ADC_CR2_JEXTEN			20
+#define ADC_CR2_JSWSTART		22
+#define ADC_CR2_EXTSEL			24
+#define ADC_CR2_EXTEN			28
+#define ADC_CR2_SWSTART			30
+
+/*
+ * Bit position definitions for ADC_CSR
+ */
+#define ADC_CSR_AWD1			0
+#define ADC_CSR_EOC1			1
+#define ADC_CSR_JEOC1			2
+#define ADC_CSR_JSTRT1			3
+#define ADC_CSR_STRT1			4
+#define ADC_CSR_OVR1			5
+#define ADC_CSR_AWD2			8
+#define ADC_CSR_EOC2			9
+#define ADC_CSR_JEOC2			10
+#define ADC_CSR_JSTRT2			11
+#define ADC_CSR_STRT2			12
+#define ADC_CSR_OVR2			13
+#define ADC_CSR_AWD3			16
+#define ADC_CSR_EOC3			17
+#define ADC_CSR_JEOC3			18
+#define ADC_CSR_JSTRT3			19
+#define ADC_CSR_STRT3			20
+#define ADC_CSR_OVR3			21
+
+/*
+ * Bit position definitions for ADC_CCR
+ */
+#define ADC_CCR_MULTI			0
+#define ADC_CCR_DELAY			8
+#define ADC_CCR_DDS				13
+#define ADC_CCR_DMA				14
+#define ADC_CCR_ADCPRE			16
+#define ADC_CCR_VBATE			22
+#define ADC_CCR_TSVREFE			23
+
+/*
+ * Bit position definitions for ADC_CDR
+ */
+#define ADC_CDR_DATA1			0
+#define ADC_CDR_DATA2			16
+
+
 /******************************************************************************************************
  * 											APIs supported by this driver
  * 						For more information about the APIs, check the function definitions

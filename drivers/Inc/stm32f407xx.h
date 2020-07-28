@@ -84,6 +84,8 @@
 #define USART3_BASEADDR		(APB1PERIPH_BASE + 0x4800U)
 #define UART4_BASEADDR		(APB1PERIPH_BASE + 0x4C00U) /** UART does not support synchronous communication */
 #define UART5_BASEADDR		(APB1PERIPH_BASE + 0x5000U)
+#define TIM6_BASEADDR		(APB1PERIPH_BASE + 0x1000U)
+#define TIM7_BASEADDR		(APB1PERIPH_BASE + 0x1400U)
 
 /**
  * Base addresses of peripherals on APB2 bus
@@ -264,6 +266,20 @@ typedef struct
 	__vo uint32_t HIFCR;  /*!< DMA high interrupt flag clear register, Address offset: 0x0C */
 } DMA_RegDef_t;
 
+typedef struct
+{
+	__vo uint32_t CR1;   /*!< TIM6 and TIM7 control register 1,      Address offset: 0x00 */
+	__vo uint32_t CR2;   /*!< TIM6 and TIM7 control register 2,     Address offset: 0x04 */
+	__vo uint32_t RESVR;   /*!< Reserved,     Address offset: 0x08 */
+	__vo uint32_t DIER;  /*!< TIM6 and TIM7 DMA/Interrupt enable register,  Address offset: 0x0C */
+	__vo uint32_t SR;  /*!< TIM6 and TIM7 status register, Address offset: 0x10 */
+	__vo uint32_t EGR;  /*!< TIM6 and TIM7 event generation register, Address offset: 0x14 */
+	__vo uint32_t RESVR2[3];   /*!< Reserved,     Address offset: 0x18 - 0x20 */
+	__vo uint32_t CNT;  /*!< TIM6 and TIM7 counter, Address offset: 0x24 */
+	__vo uint32_t PSC;  /*!< TIM6 and TIM7 prescaler, Address offset: 0x28 */
+	__vo uint32_t ARR;  /*!< TIM6 and TIM7 auto-reload register, Address offset: 2C */
+} TIMB_RegDef_t;
+
 /**
  * peripheral definitions (Peripheral base addresses typecasted to XXX_RegDef_t)
  */
@@ -320,437 +336,8 @@ typedef struct
 #define ADC3				((ADC_RegDef_t*)ADC3_BASEADDR)
 #define ADCC				((ADC_Common_RegDef_t*)ADCC_BASEADDR)
 
-/*******************************************************************************************************************
- * Bit position definitions of SPI peripheral
- *******************************************************************************************************************/
-
-/*
- * Bit position definitions for SPI_CR1
- */
-#define SPI_CR1_CPHA		0
-#define SPI_CR1_CPOL		1
-#define SPI_CR1_MSTR		2
-#define SPI_CR1_BR			3
-#define SPI_CR1_SPE			6
-#define SPI_CR1_LSBFIRST	7
-#define SPI_CR1_SSI			8
-#define SPI_CR1_SSM			9
-#define SPI_CR1_RXONLY		10
-#define SPI_CR1_DFF			11
-#define SPI_CR1_CRCNEXT		12
-#define SPI_CR1_CRCEN		13
-#define SPI_CR1_BIDIOE		14
-#define SPI_CR1_BIDIMODE	15
-
-/*
- * Bit position definitions for SPI_CR2
- */
-#define SPI_CR2_RXDMAEN		0
-#define SPI_CR2_TXDMAEN		1
-#define SPI_CR2_SSOE		2
-#define SPI_CR2_FRF			4
-#define SPI_CR2_ERRIE		5
-#define SPI_CR2_RXNEIE		6
-#define SPI_CR2_TXEIE		7
-
-/*
- * Bit position definitions for SPI_SR
- */
-#define SPI_SR_RXNE			0
-#define SPI_SR_TXE			1
-#define SPI_SR_CHSIDE		2
-#define SPI_SR_UDR			3
-#define SPI_SR_CRCERR		4
-#define SPI_SR_MODF			5
-#define SPI_SR_OVR			6
-#define SPI_SR_BSY			7
-#define SPI_SR_FRE			8
-
-
-/*******************************************************************************************************************
- * Bit position definitions of I2C peripheral
- *******************************************************************************************************************/
-
-/*
- * Bit position definitions for I2C_CR1
- */
-#define I2C_CR1_PE			0
-#define I2C_CR1_SMBUS		1
-#define I2C_CR1_SMBTYPE		3
-#define I2C_CR1_ENARP		4
-#define I2C_CR1_ENPEC		5
-#define I2C_CR1_ENGC		6
-#define I2C_CR1_NOSTRETCH	7
-#define I2C_CR1_START		8
-#define I2C_CR1_STOP		9
-#define I2C_CR1_ACK			10
-#define I2C_CR1_POS			11
-#define I2C_CR1_PEC			12
-#define I2C_CR1_ALERT		13
-#define I2C_CR1_SWRST		15
-
-/*
- * Bit position definitions for I2C_CR2
- */
-#define I2C_CR2_FREQ		0
-#define I2C_CR2_ITERREN		8
-#define I2C_CR2_ITEVTEN		9
-#define I2C_CR2_ITBUFEN		10
-#define I2C_CR2_DMAEN		11
-#define I2C_CR2_LAST		12
-
-/*
- * Bit position definitions for I2C_OAR1
- */
-#define I2C_OAR1_ADD0		0
-#define I2C_OAR1_ADD1		1
-#define I2C_OAR1_ADD2		8
-#define I2C_OAR1_BIT14ON	14
-#define I2C_OAR1_ADDMODE	15
-
-/*
- * Bit position definitions for I2C_OAR2
- */
-#define I2C_OAR2_ENDUAL		0
-#define I2C_OAR2_ADD2		1
-
-/*
- * Bit position definitions for I2C_DR
- */
-#define I2C_DR_DR			0
-
-/*
- * Bit position definitions for I2C_SR1
- */
-#define I2C_SR1_SB			0
-#define I2C_SR1_ADDR		1
-#define I2C_SR1_BTF			2
-#define I2C_SR1_ADD10		3
-#define I2C_SR1_STOPF		4
-#define I2C_SR1_RXNE		6
-#define I2C_SR1_TXE			7
-#define I2C_SR1_BERR		8
-#define I2C_SR1_ARLO		9
-#define I2C_SR1_AF			10
-#define I2C_SR1_OVR			11
-#define I2C_SR1_PECERR		12
-#define I2C_SR1_TIMEOUT		14
-#define I2C_SR1_SMBALERT	15
-
-/*
- * Bit position definitions for I2C_SR2
- */
-#define I2C_SR2_MSL			0
-#define I2C_SR2_BUSY		1
-#define I2C_SR2_TRA			2
-#define I2C_SR2_GENCALL		4
-#define I2C_SR2_SMBDEFAULT	5
-#define I2C_SR2_SMBHOST		6
-#define I2C_SR2_DUALF		7
-#define I2C_SR2_PEC			8
-
-/*
- * Bit position definitions for I2C_CCR
- */
-#define I2C_CCR_CCR			0
-#define I2C_CCR_DUTY		14
-#define I2C_CCR_FS			15
-
-
-/*******************************************************************************************************************
- * Bit position definitions of USART peripheral
- *******************************************************************************************************************/
-
-/*
- * Bit position definitions for USART_SR
- */
-#define USART_SR_PE			0
-#define USART_SR_FE			1
-#define USART_SR_NF			2
-#define USART_SR_ORE		3
-#define USART_SR_IDLE		4
-#define USART_SR_RXNE		5
-#define USART_SR_TC			6
-#define USART_SR_TXE		7
-#define USART_SR_LBD		8
-#define USART_SR_CTS		9
-
-/*
- * Bit position definitions for USART_CR1
- */
-
-#define USART_CR1_SBK			0
-#define USART_CR1_RWU			1
-#define USART_CR1_RE			2
-#define USART_CR1_TE			3
-#define USART_CR1_IDLEIE		4
-#define USART_CR1_RXNEIE		5
-#define USART_CR1_TCIE			6
-#define USART_CR1_TXEIE			7
-#define USART_CR1_PEIE			8
-#define USART_CR1_PS			9
-#define USART_CR1_PCE			10
-#define USART_CR1_WAKE			11
-#define USART_CR1_M				12
-#define USART_CR1_UE			13
-#define USART_CR1_OVER8			15
-
-/*
- * Bit position definitions for USART_CR2
- */
-
-#define USART_CR2_ADD			0
-#define USART_CR2_LBDL			5
-#define USART_CR2_LBDIE			6
-#define USART_CR2_LBCL			8
-#define USART_CR2_CPHA			9
-#define USART_CR2_CPOL			10
-#define USART_CR2_CLKEN			11
-#define USART_CR2_STOP			12
-#define USART_CR2_LINEN			14
-
-/*
- * Bit position definitions for USART_CR3
- */
-
-#define USART_CR3_EIE			0
-#define USART_CR3_IREN			1
-#define USART_CR3_IRLP			2
-#define USART_CR3_HDSEL			3
-#define USART_CR3_NACK			4
-#define USART_CR3_SCEN			5
-#define USART_CR3_DMAR			6
-#define USART_CR3_DMAT			7
-#define USART_CR3_RTSE			8
-#define USART_CR3_CTSE			9
-#define USART_CR3_CTSIE			10
-#define USART_CR3_ONEBIT		11
-
-/*
- * Bit position definitions for USART_GTPR
- */
-
-#define USART_GTPR_PSC			0
-#define USART_GTPR_GT			8
-
-
-/*******************************************************************************************************************
- * Bit position definitions of ADC peripheral
- *******************************************************************************************************************/
-
-/*
- * Bit position definitions for ADC_SR
- */
-#define ADC_SR_AWD			0
-#define ADC_SR_EOC			1
-#define ADC_SR_JEOC			2
-#define ADC_SR_JSTRT		3
-#define ADC_SR_STRT			4
-#define ADC_SR_OVR			5
-
-/*
- * Bit position definitions for ADC_CR1
- */
-#define ADC_CR1_AWDCH			0
-#define ADC_CR1_EOCIE			5
-#define ADC_CR1_AWDIE			6
-#define ADC_CR1_JEOCIE			7
-#define ADC_CR1_SCAN			8
-#define ADC_CR1_AWDSGL			9
-#define ADC_CR1_JAUTO			10
-#define ADC_CR1_DISCEN			11
-#define ADC_CR1_JDISCEN			12
-#define ADC_CR1_DISCNUM			13
-#define ADC_CR1_JAWDEN			22
-#define ADC_CR1_AWDEN			23
-#define ADC_CR1_RES				24
-#define ADC_CR1_OVRIE			26
-
-/*
- * Bit position definitions for ADC_CR2
- */
-#define ADC_CR2_ADON			0
-#define ADC_CR2_CONT			1
-#define ADC_CR2_DMA				8
-#define ADC_CR2_DDS				9
-#define ADC_CR2_EOCS			10
-#define ADC_CR2_ALIGN			11
-#define ADC_CR2_JEXTSEL			16
-#define ADC_CR2_JEXTEN			20
-#define ADC_CR2_JSWSTART		22
-#define ADC_CR2_EXTSEL			24
-#define ADC_CR2_EXTEN			28
-#define ADC_CR2_SWSTART			30
-
-/*
- * Bit position definitions for ADC_CSR
- */
-#define ADC_CSR_AWD1			0
-#define ADC_CSR_EOC1			1
-#define ADC_CSR_JEOC1			2
-#define ADC_CSR_JSTRT1			3
-#define ADC_CSR_STRT1			4
-#define ADC_CSR_OVR1			5
-#define ADC_CSR_AWD2			8
-#define ADC_CSR_EOC2			9
-#define ADC_CSR_JEOC2			10
-#define ADC_CSR_JSTRT2			11
-#define ADC_CSR_STRT2			12
-#define ADC_CSR_OVR2			13
-#define ADC_CSR_AWD3			16
-#define ADC_CSR_EOC3			17
-#define ADC_CSR_JEOC3			18
-#define ADC_CSR_JSTRT3			19
-#define ADC_CSR_STRT3			20
-#define ADC_CSR_OVR3			21
-
-/*
- * Bit position definitions for ADC_CCR
- */
-#define ADC_CCR_MULTI			0
-#define ADC_CCR_DELAY			8
-#define ADC_CCR_DDS				13
-#define ADC_CCR_DMA				14
-#define ADC_CCR_ADCPRE			16
-#define ADC_CCR_VBATE			22
-#define ADC_CCR_TSVREFE			23
-
-/*
- * Bit position definitions for ADC_CDR
- */
-#define ADC_CDR_DATA1			0
-#define ADC_CDR_DATA2			16
-
-/*******************************************************************************************************************
- * Bit position definitions of DMA peripheral
- *******************************************************************************************************************/
-
-/*
- * Bit position definitions for DMA low interrupt status register
- */
-#define DMA_LISR_FEIF0			0
-#define DMA_LISR_DMEIF0			2
-#define DMA_LISR_TEIF0			3
-#define DMA_LISR_HTIF0			4
-#define DMA_LISR_TCIF0			5
-#define DMA_LISR_FEIF1			6
-#define DMA_LISR_DMEIF1			8
-#define DMA_LISR_TEIF1			9
-#define DMA_LISR_HTIF1			10
-#define DMA_LISR_TCIF1			11
-#define DMA_LISR_FEIF2			16
-#define DMA_LISR_DMEIF2			18
-#define DMA_LISR_TEIF2			19
-#define DMA_LISR_HTIF2			20
-#define DMA_LISR_TCIF2			21
-#define DMA_LISR_FEIF3			22
-#define DMA_LISR_DMEIF3			24
-#define DMA_LISR_TEIF3			25
-#define DMA_LISR_HTIF3			26
-#define DMA_LISR_TCIF3			27
-
-/*
- * Bit position definitions for DMA high interrupt status register
- */
-#define DMA_HISR_FEIF4			0
-#define DMA_HISR_DMEIF4			2
-#define DMA_HISR_TEIF4			3
-#define DMA_HISR_HTIF4			4
-#define DMA_HISR_TCIF4			5
-#define DMA_HISR_FEIF5			6
-#define DMA_HISR_DMEIF5			8
-#define DMA_HISR_TEIF5			9
-#define DMA_HISR_HTIF5			10
-#define DMA_HISR_TCIF5			11
-#define DMA_HISR_FEIF6			16
-#define DMA_HISR_DMEIF6			18
-#define DMA_HISR_TEIF6			19
-#define DMA_HISR_HTIF6			20
-#define DMA_HISR_TCIF6			21
-#define DMA_HISR_FEIF7			22
-#define DMA_HISR_DMEIF7			24
-#define DMA_HISR_TEIF7			25
-#define DMA_HISR_HTIF7			26
-#define DMA_HISR_TCIF7			27
-
-/*
- * Bit position definitions for DMA low interrupt flag clear register
- */
-#define DMA_LIFCR_CFEIF0		0
-#define DMA_LIFCR_CDMEIF0		2
-#define DMA_LIFCR_CTEIF0		3
-#define DMA_LIFCR_CHTIF0		4
-#define DMA_LIFCR_CTCIF0		5
-#define DMA_LIFCR_CFEIF1		6
-#define DMA_LIFCR_CDMEIF1		8
-#define DMA_LIFCR_CTEIF1		9
-#define DMA_LIFCR_CHTIF1		10
-#define DMA_LIFCR_CTCIF1		11
-#define DMA_LIFCR_CFEIF2		16
-#define DMA_LIFCR_CDMEIF2		18
-#define DMA_LIFCR_CTEIF2		19
-#define DMA_LIFCR_CHTIF2		20
-#define DMA_LIFCR_CTCIF2		21
-#define DMA_LIFCR_CFEIF3		22
-#define DMA_LIFCR_CDMEIF3		24
-#define DMA_LIFCR_CTEIF3		25
-#define DMA_LIFCR_CHTIF3		26
-#define DMA_LIFCR_CTCIF3		27
-
-/*
- * Bit position definitions for DMA high interrupt flag clear register
- */
-#define DMA_HIFCR_CFEIF4		0
-#define DMA_HIFCR_CDMEIF4		2
-#define DMA_HIFCR_CTEIF4		3
-#define DMA_HIFCR_CHTIF4		4
-#define DMA_HIFCR_CTCIF4		5
-#define DMA_HIFCR_CFEIF5		6
-#define DMA_HIFCR_CDMEIF5		8
-#define DMA_HIFCR_CTEIF5		9
-#define DMA_HIFCR_CHTIF5		10
-#define DMA_HIFCR_CTCIF5		11
-#define DMA_HIFCR_CFEIF6		16
-#define DMA_HIFCR_CDMEIF6		18
-#define DMA_HIFCR_CTEIF6		19
-#define DMA_HIFCR_CHTIF6		20
-#define DMA_HIFCR_CTCIF6		21
-#define DMA_HIFCR_CFEIF7		22
-#define DMA_HIFCR_CDMEIF7		24
-#define DMA_HIFCR_CTEIF7		25
-#define DMA_HIFCR_CHTIF7		26
-#define DMA_HIFCR_CTCIF7		27
-
-/*
- * Bit position definitions for DMA stream x configuration register
- */
-#define DMA_SxCR_EN			0
-#define DMA_SxCR_DMEIE		1
-#define DMA_SxCR_TEIE		2
-#define DMA_SxCR_HTIE		3
-#define DMA_SxCR_TCIE		4
-#define DMA_SxCR_PFCTRL		5
-#define DMA_SxCR_DIR		6
-#define DMA_SxCR_CIRC		8
-#define DMA_SxCR_PINC		9
-#define DMA_SxCR_MINC		10
-#define DMA_SxCR_PSIZE		11
-#define DMA_SxCR_MSIZE		13
-#define DMA_SxCR_PINCOS		15
-#define DMA_SxCR_PL			16
-#define DMA_SxCR_DBM		18
-#define DMA_SxCR_CT			19
-#define DMA_SxCR_PBURST		21
-#define DMA_SxCR_MBURST		23
-#define DMA_SxCR_CHSEL		25
-
-/*
- * Bit position definitions for DMA stream x FIFO control register
- */
-#define DMA_SxFCR_FTH			0
-#define DMA_SxFCR_DMDIS			2
-#define DMA_SxFCR_FS			3
-#define DMA_SxFCR_FEIE			7
+#define TIM6				((TIMB_RegDef_t*)TIM6_BASEADDR)
+#define TIM7				((TIMB_RegDef_t*)TIM7_BASEADDR)
 
 /**
  * IRQ (Interrupt Request) Number of STM32F407x MCU
@@ -805,6 +392,9 @@ typedef struct
 #define IRQ_NO_DMA2_STREAM6 69
 #define IRQ_NO_DMA2_STREAM7 70
 
+#define IRQ_NO_TIM6_DAC 	54
+#define IRQ_NO_TIM7		 	55
+
 /**
  * IRQ Priority levels
  */
@@ -825,6 +415,7 @@ typedef struct
 #define NVIC_IRQ_PRI14		14
 #define NVIC_IRQ_PRI15		15
 
+#include "armcortexm4_nvic_driver.h"
 #include "stm32f407xx_gpio_driver.h"
 #include "stm32f407xx_spi_driver.h"
 #include "stm32f407xx_i2c_driver.h"
@@ -832,6 +423,6 @@ typedef struct
 #include "stm32f407xx_rcc_driver.h"
 #include "stm32f407xx_adc_driver.h"
 #include "stm32f407xx_dma_driver.h"
-#include "armcortexm4_nvic_driver.h"
+#include "stm32f407xx_timer_driver.h"
 
 #endif /* INC_STM32F407XX_H_ */
