@@ -192,11 +192,11 @@ int main(void) {
 
 	/* Set rotation to landscape */
 	ILI9341_Set_Rotation(3);
+	ILI9341_Set_Address(0, 0, Y_PIXELS-1, X_PIXELS-1);
 
 	//Perform 60 alternating color screen refreshes
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
-	ILI9341_Set_Address(0, 0, Y_PIXELS-1, X_PIXELS-1);
 	for(int i = 0; i < 30; i++) {
 		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE);
 		ILI9341_Fill_Screen(ILI9341_COLOR_RED);
