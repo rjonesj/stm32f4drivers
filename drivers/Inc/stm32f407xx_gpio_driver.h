@@ -23,13 +23,20 @@ typedef struct {
 } GPIO_PinConfig_t;
 
 /**
- * This is a Handle structure for a GPIO pin
+ * This is a Handle structure for a GPIO port
  */
 typedef struct {
 	GPIO_RegDef_t *pGPIOx; 				/* This holds the base address of the GPIO port to which the pin belongs */
 	GPIO_PinConfig_t GPIO_PinConfig;	/* This holds GPIO pin configuration settings */
 } GPIO_Handle_t;
 
+/**
+ * This is a Handle structure for a GPIO pin
+ */
+typedef struct {
+	GPIO_RegDef_t *pGPIOx;
+	uint8_t pinNo;
+} GPIO_Pin_Handle_t;
 
 /**
  * @GPIO_PIN_NUMBERS
@@ -116,6 +123,7 @@ void GPIO_PeriClockControl(GPIO_RegDef_t *pGPIOx, uint8_t EnOrDis);
  */
 void GPIO_Init(GPIO_Handle_t *pGPIOHandle);
 void GPIO_DeInit(GPIO_RegDef_t *pGPIOx);
+void GPIO_Pin_Init(GPIO_Handle_t *gpioHandle, uint8_t pinNo);
 
 /**
  * Data read and write

@@ -6,7 +6,7 @@
  */
 
 /*
- * Program turns on a 320X240 pixel TFT LCD screen using ILI9341 driver with 4 wire SPI and tests full screen refreshes using alternate colors.
+ * Program turns on a 240x320 pixel TFT LCD screen using ILI9341 driver with 4 wire SPI and tests full screen refreshes using alternate colors.
  * This a sample application to test different methods and clock speeds to achieve fast refresh rates.
  *
  * SPI1 pins	(42 MHz)
@@ -107,7 +107,7 @@ void SPI1_Init(void) {
 	SPI1Handle.pSPIx = SPI1;
 	SPI1Handle.SPI_Config.SPI_BusConfig = SPI_BUS_CONFIG_FD;
 	SPI1Handle.SPI_Config.SPI_DeviceMode = SPI_DEVICE_MODE_MASTER;
-	SPI1Handle.SPI_Config.SPI_SclkSpeed = SPI_SCLK_SPEED_DIV2; //Generates SCLK of 8 Mhz
+	SPI1Handle.SPI_Config.SPI_SclkSpeed = SPI_SCLK_SPEED_DIV2;
 	SPI1Handle.SPI_Config.SPI_DFF = SPI_DFF_8BITS;
 	SPI1Handle.SPI_Config.SPI_CPOL = SPI_CPOL_LOW;
 	SPI1Handle.SPI_Config.SPI_CPHA = SPI_CPHA_FIRST;
@@ -140,17 +140,18 @@ void DMA2_Init(void) {
 	DMA_Init(&DMA2Handle);
 }
 
-void ILI9341_Handle_Init(void) {
+void ILI9341_Driver_Init(void) {
+	ILIHandle.intfMode = ILI9341_MODE_4WIRE_8BIT_SERIAL;
 	ILIHandle.pLCDPins = &LCDPins;
-	ILIHandle.pSPIHandle = &SPI1Handle;
-	ILIHandle.pDMAHandle = &DMA2Handle;
-	ILIHandle.ILI9341_Config.lcdCSPin = LCD_CS;
-	ILIHandle.ILI9341_Config.lcdDCPin = LCD_DC;
-	ILIHandle.ILI9341_Config.lcdResetPin = LCD_RESET;
-	ILIHandle.ILI9341_Config.xPixels = X_PIXELS;
-	ILIHandle.ILI9341_Config.yPixels = Y_PIXELS;
-	ILIHandle.ILI9341_Config.dmaMaxTransfer = DMA_MAX_NDTR;
-	ILIHandle.ILI9341_Config.intfMode = ILI9341_MODE_4WIRE_8BIT_SERIAL;
+	ILIHandle.xPixels = X_PIXELS;
+	ILIHandle.yPixels = Y_PIXELS;
+
+	ILIHandle.ILI9341_SPI_Config.lcdCSPin = LCD_CS;
+	ILIHandle.ILI9341_SPI_Config.lcdDCPin = LCD_DC;
+	ILIHandle.ILI9341_SPI_Config.lcdResetPin = LCD_RESET;
+	ILIHandle.ILI9341_SPI_Config.enableDMA = ENABLE;
+	ILIHandle.ILI9341_SPI_Config.pDMAHandle = &DMA2Handle;
+	ILIHandle.ILI9341_SPI_Config.dmaMaxTransfer = DMA_MAX_NDTR;
 
 	ILI9341_Init(&ILIHandle);
 }
@@ -187,17 +188,18 @@ int main(void) {
 	DMA2_Init();
 
 	//Initialize ILI9341 driver
-	ILI9341_Handle_Init();
+	ILI9341_Driver_Init();
 
 	/* Set rotation to landscape */
 	ILI9341_Set_Rotation(3);
+	ILI9341_Set_Address(0, 0, Y_PIXELS-1, X_PIXELS-1);
 
 	//Perform 60 alternating color screen refreshes
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);
 	for(int i = 0; i < 30; i++) {
-		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE, ENABLE);
-		ILI9341_Fill_Screen(ILI9341_COLOR_RED, ENABLE);
+		ILI9341_Fill_Screen(ILI9341_COLOR_BLUE);
+		ILI9341_Fill_Screen(ILI9341_COLOR_RED);
 	}
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_SET);
 	GPIO_WriteToOutputPin(LCDPins.pGPIOx, TEST_PIN, GPIO_PIN_RESET);

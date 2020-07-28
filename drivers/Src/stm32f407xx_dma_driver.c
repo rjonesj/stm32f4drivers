@@ -185,7 +185,7 @@ uint8_t getInterruptStatus(DMA_Handle_t *pDMAHandle, uint8_t interruptEvent) {
 	uint8_t upperHalf = 0;
 	uint8_t bitPosition = 0;
 	uint32_t result = 0;
-	__vo uint32_t *statusRegisterAddress;
+	__vo uint32_t *statusRegisterAddress = NULL;
 
 	//Get address of status register to read
 	if(pDMAHandle->DMA_Config.stream == 0 || pDMAHandle->DMA_Config.stream == 1) {
